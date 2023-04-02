@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import { socket } from './socket';
 
 import './App.css';
 import Board from './Board';
 import Chat from './Chat';
 import ConnectionButton from './ConnectionButton';
 import Modal from './Modal';
-
-const socket = io("http://localhost:5000");
 
 export type ChatMessage = {
   author: string;
