@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* #root {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+} */
+
+#root {
+  width: 100%;
+}
+
+/* .chat-list {
+  min-height: 5rem;
+  border: 1px solid gray;
+  display: inline-block; 
+	text-align: left; 
+  list-style-type: none;
+  padding: 0;
+  width: 100%;
+} */
