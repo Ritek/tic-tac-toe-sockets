@@ -4,7 +4,7 @@ export default class Room {
   turn: number;
 
   name: string;
-  privateRoom: boolean;
+  isPrivateRoom: boolean;
   gameState: (string | null)[];
 
   playerX?: string;
@@ -16,7 +16,7 @@ export default class Room {
     this.turn = 0;
 
     this.name = name;
-    this.privateRoom = privateRoom;
+    this.isPrivateRoom = privateRoom;
     this.gameState = new Array<string | null>(9).fill(null);
 
     this.playerX = playerX;
@@ -47,21 +47,9 @@ export default class Room {
     }
   }
 
-  isEmpty() {
-    return !this.playerX && !this.playerO;
-  }
-
-  twoPlayerPresent() {
-    if (this.playerX && this.playerO) return true;
-  }
-
-  canJoinRoom() {
-    // if (this.playerX && !this.playerO) return true;
-    // if (!this.playerX && this.playerO) return true;
-    // return false;
-
-    return !this.playerX || !this.playerO;
-  }
+  isEmpty = () => !this.playerX && !this.playerO;
+  canJoinRoom = () => !this.playerX || !this.playerO;
+  twoPlayerPresent = () => this.playerX && this.playerO
 
   isPlayersTurn(player: string) {
     if (player === this.playerX && this.turn % 2 === 0) return true;
@@ -70,16 +58,35 @@ export default class Room {
   }
 
   changeGameState(player: string, index: number) {
-    if (this.playerX === player && this.gameState[index] === null) {
-      this.gameState[index] = 'X';
+    const playerChar = this.playerX === player ? 'X' : 'O';
+    if (this.gameState[index] === null) {
+      this.gameState[index] = playerChar;
       this.turn++;
-      return;
     }
-    if (this.playerO === player && this.gameState[index] === null) {
-      this.gameState[index] = 'O';
-      this.turn++;
-      return;
-    }
+
+    // if (this.playerX === player && this.gameState[index] === null) {
+    //   this.gameState[index] = 'X';
+    //   this.turn++;
+    //   return;
+    // }
+    // if (this.playerO === player && this.gameState[index] === null) {
+    //   this.gameState[index] = 'O';
+    //   this.turn++;
+    //   return;
+    // }
+  }
+
+  private checkLine(line: number[]) {
+    if (this.gameState[line[0]] 
+        && this.gameState[line[0]] === this.gameState[line[1]] 
+        && this.gameState[line[0]] === this.gameState[line[2]]
+    ) {
+      this.winner = this.gameState[line[0]] === 'X' ? 'player X' : 'player O';
+      this.finished = true;
+      return true;
+    } 
+    
+    return false;
   }
 
   checkGameOver() {
@@ -95,15 +102,18 @@ export default class Room {
       [0, 4, 8],
       [2, 4, 6],
     ];
-    winningLines.forEach(line => {
-      if (line[0] && line[0] === line[1] && line[0] === line[2]) {
-        this.winner = this.gameState[line[0]] === 'X' ? 'player X' : 'player O';
-        this.finished = true;
-        return true;
-      }
-    });
 
-    if (this.turn === 9) return true;
+    if (this.turn === 9) {
+      this.winner = "draw";
+      this.finished = true;
+      return true;
+    }
+
+    for (const line of winningLines) {
+      console.log("Line:", line, " is ", this.checkLine(line));
+      if (this.checkLine(line)) return true;
+    }
+    
     return false;
   }
 

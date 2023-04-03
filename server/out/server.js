@@ -29,14 +29,14 @@ function findEmptyRoom() {
     return Array.from(rooms.values()).find(room => !room.playerX && !room.playerO);
 }
 io.on("connection", (socket) => {
-    socket.send({ event: 'chat-message', message: `Welcome user ${socket.id}` });
+    // socket.send({event: 'chat-message', message: `Welcome user ${socket.id}`});
+    io.to(socket.id).emit('chat-message', { author: 'SYSTEM', message: `Welcome user ${socket.id}` });
     const room = findRoomToJoin();
     if (!room)
         socket.send({ event: 'rooms full', message: `All rooms are full!` });
     else {
         room.addPlayer(socket.id);
         socket.join(room.name);
-        // socket.send({event: 'chat-message', message: `You have joined the room ${room.name}!`});
         io.to(socket.id).emit('chat-message', { author: 'SYSTEM', message: `You have joined the room ${room.name}!` });
         io.to(socket.id).emit('move-made', { event: 'MOVE', turn: room.turn, gameState: room.gameState });
         console.log(rooms);
@@ -52,10 +52,12 @@ io.on("connection", (socket) => {
             return socket.send({ event: 'ERROR', message: `Not connected to any room!` });
         if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
             room.changeGameState(socket.id, arg.change);
-            if (room.checkGameOver())
+            if (room.checkGameOver()) {
                 return io.in(`${room.name}`).emit('move-made', {
                     event: 'GAME_OVER', winner: room.winner, turn: room.turn, gameState: room.gameState
                 });
+            }
+            console.log('Before sending move-made');
             return io.in(`${room.name}`).emit('move-made', {
                 event: 'MOVE', turn: room.turn, gameState: room.gameState
             });

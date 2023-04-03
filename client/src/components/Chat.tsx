@@ -1,24 +1,26 @@
-import React, { useState } from 'react';
-import { ChatMessage } from './App';
+import React, { useRef } from 'react';
+import { socket } from '../socket';
+
+import { ChatMessage } from '../types';
 
 type Props = {
   messages: ChatMessage[];
-  sendChatMessage: (newMessage: string) => void;
 }
 
-function Chat(props: Props) {
-  const [newMessage, setNewMessage] = useState('');
+const Chat = function(props: Props) {
+  console.log('Chat rerendered!');
+  const newMessage = useRef<HTMLInputElement>(null);
 
   function sendChatMessage() {
-    if (newMessage === '') return;
-    props.sendChatMessage(newMessage);
-    setNewMessage('');
+    if (newMessage.current && newMessage.current.value) {
+      socket.emit('chat-message', { event: 'CHAT_MESSAGE', message: newMessage.current.value });
+      newMessage.current.value = "";
+    }
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {
     if (event.key !== 'Enter') return;
-    props.sendChatMessage(newMessage);
-    setNewMessage('');
+    sendChatMessage();
   }
 
   return (
@@ -31,11 +33,11 @@ function Chat(props: Props) {
           ))}
       </ul>
       <div className='flex'>
-          <input className="flex-auto w-10/12 m-0 p-1" type="text" value={newMessage} 
-              onChange={(e) => setNewMessage(e.target.value)} 
-              onKeyDown={handleKeyDown}
-              placeholder="Enter chat message..." 
-              min='1'
+          <input className="flex-auto w-10/12 m-0 p-1" type="text" /* value={newMessage} */
+            ref={newMessage}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter chat message..." 
+            min='1'
           />
           <button className="flex-auto w-2/12 m-0 p-1 rounded-none bg-sky-800" type="button" onClick={sendChatMessage}>Send</button>
       </div>
@@ -43,4 +45,4 @@ function Chat(props: Props) {
   )
 }
 
-export default Chat
+export default React.memo(Chat);
