@@ -21,6 +21,11 @@ rooms.set('room-0', new Room('room-0', false));
 rooms.set('room-1', new Room('room-1', false));
 rooms.set('room-2', new Room('room-2', true));
 
+setInterval(function() {
+  console.log('all-rooms:', Array.from(rooms).map(room => room[1].getBasicInfo()));
+  io.emit('all-rooms', Array.from(rooms).map(room => room[1].getBasicInfo()));
+}, 3000);
+
 function findRoomToJoin() {
   const temp = Array.from(rooms.values()).find(room => room.canJoinRoom());
   return temp ? temp : findEmptyRoom();
@@ -31,16 +36,18 @@ function findEmptyRoom() {
 }
 
 io.on("connection", (socket) => {
-  // socket.send({event: 'chat-message', message: `Welcome user ${socket.id}`});
-  io.to(socket.id).emit('chat-message', {author: 'SYSTEM', message: `Welcome user ${socket.id}`});
   const room = findRoomToJoin();
 
-  if (!room) socket.send({event: 'rooms full', message: `All rooms are full!`});
+  if (!room) { 
+    console.log('All rooms are full!');
+    socket.emit('chat-message', {author: 'SYSTEM', message: `All rooms are full!`});
+  }
   else {
-    room.addPlayer(socket.id);
     socket.join(room.name);
-    io.to(socket.id).emit('chat-message', {author: 'SYSTEM', message: `You have joined the room ${room.name}!`});
-    io.to(socket.id).emit('move-made', { event: 'MOVE', turn: room.turn, gameState: room.gameState });
+    room.addPlayer(socket.id);
+    
+    io.in(room.name).emit('chat-message', {author: 'SYSTEM', message: `User: ${socket.id} joined the room: ${room.name}!`});
+    io.in(room.name).emit('move-made', { event: 'MOVE', turn: room.turn, gameState: room.gameState });
     console.log(rooms);
   }
 
@@ -52,7 +59,7 @@ io.on("connection", (socket) => {
   socket.on('move-made', (arg: {event: 'Move', change: number}) => {
     console.log('move-made', arg);
 
-    if (!room) return socket.send({event: 'ERROR', message: `Not connected to any room!`});
+    if (!room) return socket.emit('ERROR', {event: 'ERROR', message: `Not connected to any room!`});
     if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
       room.changeGameState(socket.id, arg.change);
       
@@ -62,9 +69,8 @@ io.on("connection", (socket) => {
         });
       }
 
-      console.log('Before sending move-made');
       return io.in(`${room.name}`).emit('move-made', { 
-        event: 'MOVE', turn: room.turn, gameState: room.gameState 
+        event: 'move-made', turn: room.turn, gameState: room.gameState 
       });
     }
   });
@@ -85,8 +91,13 @@ io.of("/").adapter.on("join-room", (room, id) => {
 });
 
 io.of("/").adapter.on("leave-room", (room: string, id) => {
-  rooms.get(room)?.removePlayer(id);
-  if (rooms.get(room)?.isEmpty()) rooms.get(room)?.resetGameState();
+  const gameRoom = rooms.get(room);
+  if (!gameRoom) return;
+
+  gameRoom.removePlayer(id);
+  if (gameRoom.isEmpty()) gameRoom.resetGameState();
+
+  io.in(gameRoom.name).emit('chat-message', {author: 'SYSTEM', message: `User: ${id} left the room!`});
   console.log(`user ${id} left the room ${room}`);
 });
 

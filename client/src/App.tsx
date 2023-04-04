@@ -4,7 +4,6 @@ import { socket } from './socket';
 import Board from './components/Board';
 import Chat from './components/Chat';
 import ConnectionButton from './components/ConnectionButton';
-import Modal from './components/Modal';
 import WinnerModal from './components/WinnerModal';
 
 import { ChatMessage, ServerMessage } from './types';
@@ -19,9 +18,14 @@ function App() {
   useEffect(() => {
     socket.on('connect', () => setIsConnected(true));
     socket.on('disconnect', () => setIsConnected(false));
-    socket.on('chat-message', (msg) => setMessages([...messages, msg]));
+    socket.on('chat-message', (msg) => {
+      setMessages([...messages, msg]); 
+      console.log('chat-message:', msg);
+    });
+    socket.on('all-rooms', msg => console.log('all-rooms:', msg));
 
     socket.on('move-made', (msg: ServerMessage) => {
+      console.log('move-made:', msg.gameState);
       setBoard(msg.gameState);
 
       if ('winner' in msg) {

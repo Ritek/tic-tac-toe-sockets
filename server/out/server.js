@@ -21,6 +21,10 @@ const rooms = new Map();
 rooms.set('room-0', new Room_1.default('room-0', false));
 rooms.set('room-1', new Room_1.default('room-1', false));
 rooms.set('room-2', new Room_1.default('room-2', true));
+setInterval(function () {
+    console.log('all-rooms:', Array.from(rooms).map(room => room[0]));
+    io.emit('all-rooms', Array.from(rooms).map(room => room[0]));
+}, 3000);
 function findRoomToJoin() {
     const temp = Array.from(rooms.values()).find(room => room.canJoinRoom());
     return temp ? temp : findEmptyRoom();
@@ -29,16 +33,19 @@ function findEmptyRoom() {
     return Array.from(rooms.values()).find(room => !room.playerX && !room.playerO);
 }
 io.on("connection", (socket) => {
-    // socket.send({event: 'chat-message', message: `Welcome user ${socket.id}`});
-    io.to(socket.id).emit('chat-message', { author: 'SYSTEM', message: `Welcome user ${socket.id}` });
+    // socket.emit('chat-message', {author: 'SYSTEM', message: `Welcome user ${socket.id}`});
     const room = findRoomToJoin();
-    if (!room)
-        socket.send({ event: 'rooms full', message: `All rooms are full!` });
+    const newRoomName = `room-${Array.from(rooms).length}`;
+    rooms.set(newRoomName, new Room_1.default(newRoomName, true));
+    if (!room) {
+        console.log('All rooms are full!');
+        socket.emit('chat-message', { author: 'SYSTEM', message: `All rooms are full!` });
+    }
     else {
-        room.addPlayer(socket.id);
         socket.join(room.name);
-        io.to(socket.id).emit('chat-message', { author: 'SYSTEM', message: `You have joined the room ${room.name}!` });
-        io.to(socket.id).emit('move-made', { event: 'MOVE', turn: room.turn, gameState: room.gameState });
+        room.addPlayer(socket.id);
+        io.in(room.name).emit('chat-message', { author: 'SYSTEM', message: `User: ${socket.id} joined the room: ${room.name}!` });
+        io.in(room.name).emit('move-made', { event: 'MOVE', turn: room.turn, gameState: room.gameState });
         console.log(rooms);
     }
     // messages
@@ -57,7 +64,6 @@ io.on("connection", (socket) => {
                     event: 'GAME_OVER', winner: room.winner, turn: room.turn, gameState: room.gameState
                 });
             }
-            console.log('Before sending move-made');
             return io.in(`${room.name}`).emit('move-made', {
                 event: 'MOVE', turn: room.turn, gameState: room.gameState
             });
@@ -75,10 +81,13 @@ io.of("/").adapter.on("join-room", (room, id) => {
     console.log(`socket ${id} has joined room ${room}`);
 });
 io.of("/").adapter.on("leave-room", (room, id) => {
-    var _a, _b, _c;
-    (_a = rooms.get(room)) === null || _a === void 0 ? void 0 : _a.removePlayer(id);
-    if ((_b = rooms.get(room)) === null || _b === void 0 ? void 0 : _b.isEmpty())
-        (_c = rooms.get(room)) === null || _c === void 0 ? void 0 : _c.resetGameState();
+    const gameRoom = rooms.get(room);
+    if (!gameRoom)
+        return;
+    gameRoom.removePlayer(id);
+    if (gameRoom.isEmpty())
+        gameRoom.resetGameState();
+    io.in(gameRoom.name).emit('chat-message', { author: 'SYSTEM', message: `User: ${id} left the room!` });
     console.log(`user ${id} left the room ${room}`);
 });
 io.of("/").adapter.on("delete-room", (room) => {

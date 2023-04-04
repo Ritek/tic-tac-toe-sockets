@@ -23,6 +23,13 @@ export default class Room {
     this.playerO = playerO;
   }
 
+  getBasicInfo() {
+    return {
+      name: this.name,
+      isPrivate: this.isPrivateRoom
+    }
+  }
+
   addPlayer(player: string) {
     if (!this.playerX) {
       this.playerX = player;
@@ -50,6 +57,7 @@ export default class Room {
   isEmpty = () => !this.playerX && !this.playerO;
   canJoinRoom = () => !this.playerX || !this.playerO;
   twoPlayerPresent = () => this.playerX && this.playerO
+  isValidMove = (moveIndex: number) => this.gameState[moveIndex] === null;
 
   isPlayersTurn(player: string) {
     if (player === this.playerX && this.turn % 2 === 0) return true;
@@ -63,17 +71,6 @@ export default class Room {
       this.gameState[index] = playerChar;
       this.turn++;
     }
-
-    // if (this.playerX === player && this.gameState[index] === null) {
-    //   this.gameState[index] = 'X';
-    //   this.turn++;
-    //   return;
-    // }
-    // if (this.playerO === player && this.gameState[index] === null) {
-    //   this.gameState[index] = 'O';
-    //   this.turn++;
-    //   return;
-    // }
   }
 
   private checkLine(line: number[]) {

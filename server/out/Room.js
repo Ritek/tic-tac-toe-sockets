@@ -5,14 +5,21 @@ class Room {
         this.isEmpty = () => !this.playerX && !this.playerO;
         this.canJoinRoom = () => !this.playerX || !this.playerO;
         this.twoPlayerPresent = () => this.playerX && this.playerO;
+        this.isValidMove = (moveIndex) => this.gameState[moveIndex] === null;
         this.finished = false;
         this.winner = undefined;
         this.turn = 0;
         this.name = name;
-        this.privateRoom = privateRoom;
+        this.isPrivateRoom = privateRoom;
         this.gameState = new Array(9).fill(null);
         this.playerX = playerX;
         this.playerO = playerO;
+    }
+    getBasicInfo() {
+        return {
+            name: this.name,
+            isPrivate: this.isPrivateRoom
+        };
     }
     addPlayer(player) {
         if (!this.playerX) {
