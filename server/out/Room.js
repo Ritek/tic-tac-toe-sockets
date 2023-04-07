@@ -54,16 +54,6 @@ class Room {
             this.gameState[index] = playerChar;
             this.turn++;
         }
-        // if (this.playerX === player && this.gameState[index] === null) {
-        //   this.gameState[index] = 'X';
-        //   this.turn++;
-        //   return;
-        // }
-        // if (this.playerO === player && this.gameState[index] === null) {
-        //   this.gameState[index] = 'O';
-        //   this.turn++;
-        //   return;
-        // }
     }
     checkLine(line) {
         if (this.gameState[line[0]]

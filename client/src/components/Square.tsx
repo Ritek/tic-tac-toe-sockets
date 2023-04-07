@@ -19,7 +19,8 @@ function Square(props: Props) {
   // console.log(`Squere of index ${props.index} was rerendered!`);
   return (
     <button 
-      className='w-auto block rounded-none box-border aspect-square mb-1 font-bold '
+      // className='w-auto block rounded-none box-border aspect-square mb-1 font-bold'
+      className='w-auto block rounded-none box-border aspect-square mb-1 font-bold  border-solid border-[1px] border-black p-0.5 bg-[#1a1a1a]'
       onClick={() => props.handleClick(props.index)}
     >
       { showChar(props.value) }

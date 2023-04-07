@@ -22,8 +22,8 @@ rooms.set('room-0', new Room_1.default('room-0', false));
 rooms.set('room-1', new Room_1.default('room-1', false));
 rooms.set('room-2', new Room_1.default('room-2', true));
 setInterval(function () {
-    console.log('all-rooms:', Array.from(rooms).map(room => room[0]));
-    io.emit('all-rooms', Array.from(rooms).map(room => room[0]));
+    console.log('all-rooms:', Array.from(rooms).map(room => room[1].getBasicInfo()));
+    io.emit('all-rooms', Array.from(rooms).map(room => room[1].getBasicInfo()));
 }, 3000);
 function findRoomToJoin() {
     const temp = Array.from(rooms.values()).find(room => room.canJoinRoom());
@@ -33,10 +33,7 @@ function findEmptyRoom() {
     return Array.from(rooms.values()).find(room => !room.playerX && !room.playerO);
 }
 io.on("connection", (socket) => {
-    // socket.emit('chat-message', {author: 'SYSTEM', message: `Welcome user ${socket.id}`});
     const room = findRoomToJoin();
-    const newRoomName = `room-${Array.from(rooms).length}`;
-    rooms.set(newRoomName, new Room_1.default(newRoomName, true));
     if (!room) {
         console.log('All rooms are full!');
         socket.emit('chat-message', { author: 'SYSTEM', message: `All rooms are full!` });
@@ -56,7 +53,7 @@ io.on("connection", (socket) => {
     socket.on('move-made', (arg) => {
         console.log('move-made', arg);
         if (!room)
-            return socket.send({ event: 'ERROR', message: `Not connected to any room!` });
+            return socket.emit('ERROR', { event: 'ERROR', message: `Not connected to any room!` });
         if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
             room.changeGameState(socket.id, arg.change);
             if (room.checkGameOver()) {
@@ -65,7 +62,7 @@ io.on("connection", (socket) => {
                 });
             }
             return io.in(`${room.name}`).emit('move-made', {
-                event: 'MOVE', turn: room.turn, gameState: room.gameState
+                event: 'move-made', turn: room.turn, gameState: room.gameState
             });
         }
     });
