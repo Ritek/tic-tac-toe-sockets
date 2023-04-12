@@ -35,6 +35,7 @@ function App() {
     });
 
     return () => {
+      socket.emit('leave-room', { event: 'leave-room' });
       socket.off('connect');
       socket.off('disconnect');
       socket.off('chat-message');
@@ -45,13 +46,9 @@ function App() {
   return (
     <div className="p-8 mb-28">
 
-      <button onClick={() => setShowModal(!showModal)}>Show</button>
+      <button className="p-2 bg-sky-600 rounded-md mr-2" onClick={() => setShowModal(!showModal)}>Show</button>
       <ConnectionButton isConnected={isConnected} />
 
-      {/* <Modal isVisible={showModal} setIsVisible={setShowModal} hideAfter={3000}>
-        <Modal.Text text='Player X wins!' />
-        <Modal.Button label='OK' close={() => setShowModal(false)} />
-      </Modal> */}
       <WinnerModal setIsVisible={setShowModal} showModal={showModal} text={winner} />
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>

@@ -16,9 +16,11 @@ class Room {
         this.playerO = playerO;
     }
     getBasicInfo() {
+        const playerNum = 0 + (this.playerX ? 1 : 0) + (this.playerO ? 1 : 0);
         return {
             name: this.name,
-            isPrivate: this.isPrivateRoom
+            isPrivate: this.isPrivateRoom,
+            players: playerNum
         };
     }
     addPlayer(player) {

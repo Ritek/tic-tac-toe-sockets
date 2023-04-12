@@ -12,7 +12,7 @@ function changeConnection(isConnected: boolean) {
 
 function ConnectionButton(props: Props) {
   return (
-    <button onClick={() => changeConnection(props.isConnected)} className='mb-5'>
+    <button onClick={() => changeConnection(props.isConnected)} className='p-2 bg-sky-600 rounded-md mb-5'>
       <div className='flex justify-start'>
         { props.isConnected ? "Disconnect" : "Connect" }
         <div className={`ml-3 mt-1.5 w-3 h-3 rounded-full ${props.isConnected ? 'bg-lime-500' : 'bg-red-500'}`} />
