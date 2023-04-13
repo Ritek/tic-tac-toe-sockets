@@ -3,29 +3,22 @@ import { socket } from './socket';
 
 import Board from './components/Board';
 import Chat from './components/Chat';
-import ConnectionButton from './components/ConnectionButton';
 import WinnerModal from './components/WinnerModal';
 
 import { ChatMessage, ServerMessage } from './types';
 
 function App() {
-  const [isConnected, setIsConnected] = useState(socket.connected);
   const [messages, setMessages] = useState(new Array<ChatMessage>());
   const [board, setBoard] = useState(new Array<'X' | 'O' | null>(9).fill(null));
   const [winner, setWinner] = useState<string>("");
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    socket.on('connect', () => setIsConnected(true));
-    socket.on('disconnect', () => setIsConnected(false));
     socket.on('chat-message', (msg) => {
       setMessages([...messages, msg]); 
-      console.log('chat-message:', msg);
     });
-    socket.on('all-rooms', msg => console.log('all-rooms:', msg));
 
     socket.on('move-made', (msg: ServerMessage) => {
-      console.log('move-made:', msg.gameState);
       setBoard(msg.gameState);
 
       if ('winner' in msg) {
@@ -35,20 +28,14 @@ function App() {
     });
 
     return () => {
-      socket.emit('leave-room', { event: 'leave-room' });
-      socket.off('connect');
-      socket.off('disconnect');
       socket.off('chat-message');
       socket.off('move-made');
+      socket.off();
     };
-  }, [socket, messages, board]);
+  }, [socket, messages]);
 
   return (
     <div className="p-8 mb-28">
-
-      <button className="p-2 bg-sky-600 rounded-md mr-2" onClick={() => setShowModal(!showModal)}>Show</button>
-      <ConnectionButton isConnected={isConnected} />
-
       <WinnerModal setIsVisible={setShowModal} showModal={showModal} text={winner} />
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>

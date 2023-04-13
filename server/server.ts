@@ -1,6 +1,6 @@
 import express from "express";
 import { createServer } from "http";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import cors from 'cors';
 
 import Room from './Room';
@@ -22,8 +22,7 @@ rooms.set('room-1', new Room('room-1', false));
 rooms.set('room-2', new Room('room-2', true));
 
 setInterval(function() {
-  // console.log('all-rooms:', Array.from(rooms).map(room => room[1].getBasicInfo()));
-  io.emit('all-rooms', Array.from(rooms).map(room => room[1].getBasicInfo()));
+  io.emit('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
 }, 5000);
 
 function findRoomToJoin() {
@@ -36,7 +35,8 @@ function findEmptyRoom() {
 }
 
 function sendCurrentGameState(arg: any, socket: any, room: any) {
-  console.log('move-made', arg);
+  // console.log('move-made', arg);
+  if (!room) return;
 
   if (!room) return socket.emit('ERROR', {event: 'ERROR', message: `Not connected to any room!`});
   if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
@@ -75,7 +75,35 @@ function joinRoom(socket: any, roomInfo: any, callback: Function) {
   }
 
   rooms.get(roomInfo.name)?.addPlayer(socket.id);
+  socket.join(roomInfo.name);
   return callback({status: 200, error: `Joining room '${roomInfo.name}'!`});
+}
+
+function leaveRoom(socket: Socket) {
+  const roomName = Array.from(socket.rooms)[socket.rooms.size-1];
+  const room = rooms.get(roomName);
+  
+  console.log('leave-room before', socket.rooms);
+
+  if (room) {
+    socket.leave(room.name);
+    room.removePlayer(socket.id);
+  }
+
+  console.log('leave-room after', socket.rooms);
+}
+
+function getUsersRoom(socket: Socket) {
+  const [defaultRoomName, gameRoomName, ...rest]: string[] = Array.from(socket.rooms);
+  return rooms.get(gameRoomName);
+}
+
+function leaveAllRooms(socket: Socket) {
+  const [defaultRoomName, ...otherRooms] = Array.from(socket.rooms);
+
+  otherRooms.forEach(roomName => {
+    rooms.get(roomName)?.removePlayer(socket.id);
+  });
 }
 
 io.on("connection", (socket) => {
@@ -94,36 +122,40 @@ io.on("connection", (socket) => {
     console.log(rooms);
   } */
 
-  const roomName: string = Object.values(socket.rooms)[1];
-  const room = rooms.get(roomName);
-  console.log('room:', room);
+/*   const [defaultRoomName, gameRoomName, ...rest] = Object.values(socket.rooms);
+  const room = rooms.get(gameRoomName);
+  console.log('room:', room); */
+  
 
   // send chat messages
   socket.on('chat-message', (arg) => {
+    const room = getUsersRoom(socket);
     if (room) io.in(room.name).emit('chat-message', {author: socket.id, message: arg.message});
   });
 
   // send information about the move
   socket.on('move-made', (arg: {event: 'Move', change: number}) => {
-    sendCurrentGameState(arg, socket, room);
-  });
-
-  socket.on('leave-room', (arg) => {
-    console.log('leave-room', socket.id);
-    //const roomName: string = Object.values(socket.rooms)[1];
-    rooms.get('room-0')?.removePlayer(socket.id);
+    console.log('move-made', arg);
+    const room = getUsersRoom(socket);
+    console.log(room);
+    if (room) sendCurrentGameState(arg, socket, room);
   });
 
   socket.on("create-room", (room: {name: string, isPrivate: boolean, password?: string}, callback) => {
-    createRoom(room, callback)
+    return createRoom(room, callback)
   });
 
   socket.on("join-room", (roomInfo: {name: string, password?: string}, callback) => {
     return joinRoom(socket, roomInfo, callback);
   });
 
+  socket.on('leave-room', (arg) => {
+    return leaveRoom(socket);
+  });
+
   // disconnect
-  socket.on('disconnect', (arg) => {
+  socket.on('disconnecting', (arg) => {
+    leaveAllRooms(socket);
     console.log(`user ${socket.id} disconnect`, {arg});
   });
 });
@@ -141,11 +173,11 @@ io.on("connection", (socket) => {
   callback("got it");
 }); */
 
-io.of("/").adapter.on("join-room", (room, id) => {
-  console.log(`socket ${id} has joined room ${room}`);
-});
+/* io.of("/").adapter.on("join-room", (room, id) => {
+  // console.log(`socket ${id} has joined room ${room}`);
+}); */
 
-io.of("/").adapter.on("leave-room", (room: string, id) => {
+/* io.of("/").adapter.on("leave-room", (room: string, id) => {
   const gameRoom = rooms.get(room);
   if (!gameRoom) return;
 
@@ -154,11 +186,11 @@ io.of("/").adapter.on("leave-room", (room: string, id) => {
 
   io.in(gameRoom.name).emit('chat-message', {author: 'SYSTEM', message: `User: ${id} left the room!`});
   console.log(`user ${id} left the room ${room}`);
-});
-
-io.of("/").adapter.on("delete-room", (room) => {
-  console.log(`room ${room} was deleted`);
-});
+}); */
+ 
+/* io.of("/").adapter.on("delete-room", (room) => {
+  // console.log(`room ${room} was deleted`);
+}); */
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

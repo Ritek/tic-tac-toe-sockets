@@ -6,11 +6,6 @@ import RoomTableRow from './RoomTableRow';
 import JoinRoomModal from './JoinRoomModal';
 import CreateRoomModal from './CreateRoomModal';
 
-// const LockSVG = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className='fill-white w-fit h-fit'><path d="M20 12c0-1.103-.897-2-2-2h-1V7c0-2.757-2.243-5-5-5S7 4.243 7 7v3H6c-1.103 0-2 .897-2 2v8c0 1.103.897 2 2 2h12c1.103 0 2-.897 2-2v-8zM9 7c0-1.654 1.346-3 3-3s3 1.346 3 3v3H9V7z"></path></svg>;
-// const plusSVG = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className='fill-white w-fit h-fit'><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"></path></svg>;
-// const LockSVG = <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 24 24" className='fill-white w-fit h-fit'><path d="M18 10H9V7c0-1.654 1.346-3 3-3s3 1.346 3 3h2c0-2.757-2.243-5-5-5S7 4.243 7 7v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7.939 5.499A2.002 2.002 0 0 1 14 16a1.99 1.99 0 0 1-1 1.723V20h-2v-2.277a1.992 1.992 0 0 1-.939-2.224z"></path></svg>;
-// const FullSVG = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className='fill-rose-700 w-fit h-fit'><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm4.207 12.793-1.414 1.414L12 13.414l-2.793 2.793-1.414-1.414L10.586 12 7.793 9.207l1.414-1.414L12 10.586l2.793-2.793 1.414 1.414L13.414 12l2.793 2.793z"></path></svg>;
-
 type Room = {
     name: string;
     isPrivate: boolean;
@@ -37,6 +32,7 @@ type PrivateRoom = {
 type PublicOrPrivateRoom = PublicRoom | PrivateRoom; */
 
 function HomeScreen() {
+    console.log('Rendered HomeScreen');
     const navigate = useNavigate()
 
     const [rooms, setRooms] = useState<Room[]>([]);
@@ -45,24 +41,27 @@ function HomeScreen() {
     const selectedRoomName = useRef({ name: "", isPrivate: false });
 
     useEffect(() => {
+        socket.emit('leave-room', { event: 'leave-room' });
         socket.on('all-rooms', (rooms: Room[]) => {
-            console.log('all-rooms:', rooms);
+            // console.log('all-rooms:', rooms);
             setRooms(rooms);
         });
     
         return () => {
-          socket.off('all-room');
+            console.log('Unmounted HomeScreen');
+            socket.off('all-rooms');
+            socket.off();
         };
-    }, [socket]);
+    }, []);
 
     function openJoinRoomModal(roomName: string, isPrivate: boolean) {
-        console.log('openJoinRoomModal:', roomName);
         selectedRoomName.current = {name: roomName, isPrivate};
         setShowJoinRoomModal(true);
     }
 
     function joinRoom(roomInfo: RoomInfo) {
         socket.emit("join-room", roomInfo, (response: any) => {
+            console.log('response:', response)
             if (response.status === 200) {
                 setShowJoinRoomModal(false);
                 navigate(`/${roomInfo.name}`)

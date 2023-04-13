@@ -22,8 +22,7 @@ rooms.set('room-0', new Room_1.default('room-0', false));
 rooms.set('room-1', new Room_1.default('room-1', false));
 rooms.set('room-2', new Room_1.default('room-2', true));
 setInterval(function () {
-    // console.log('all-rooms:', Array.from(rooms).map(room => room[1].getBasicInfo()));
-    io.emit('all-rooms', Array.from(rooms).map(room => room[1].getBasicInfo()));
+    io.emit('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
 }, 5000);
 function findRoomToJoin() {
     const temp = Array.from(rooms.values()).find(room => room.canJoinRoom());
@@ -33,7 +32,9 @@ function findEmptyRoom() {
     return Array.from(rooms.values()).find(room => !room.playerX && !room.playerO);
 }
 function sendCurrentGameState(arg, socket, room) {
-    console.log('move-made', arg);
+    // console.log('move-made', arg);
+    if (!room)
+        return;
     if (!room)
         return socket.emit('ERROR', { event: 'ERROR', message: `Not connected to any room!` });
     if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
@@ -67,7 +68,29 @@ function joinRoom(socket, roomInfo, callback) {
         return callback({ status: 404, error: `Room with name '${roomInfo.name}' is full!` });
     }
     (_a = rooms.get(roomInfo.name)) === null || _a === void 0 ? void 0 : _a.addPlayer(socket.id);
+    socket.join(roomInfo.name);
     return callback({ status: 200, error: `Joining room '${roomInfo.name}'!` });
+}
+function leaveRoom(socket) {
+    const roomName = Array.from(socket.rooms)[socket.rooms.size - 1];
+    const room = rooms.get(roomName);
+    console.log('leave-room before', socket.rooms);
+    if (room) {
+        socket.leave(room.name);
+        room.removePlayer(socket.id);
+    }
+    console.log('leave-room after', socket.rooms);
+}
+function getUsersRoom(socket) {
+    const [defaultRoomName, gameRoomName, ...rest] = Array.from(socket.rooms);
+    return rooms.get(gameRoomName);
+}
+function leaveAllRooms(socket) {
+    const [defaultRoomName, ...otherRooms] = Array.from(socket.rooms);
+    otherRooms.forEach(roomName => {
+        var _a;
+        (_a = rooms.get(roomName)) === null || _a === void 0 ? void 0 : _a.removePlayer(socket.id);
+    });
 }
 io.on("connection", (socket) => {
     /* const room = findRoomToJoin();
@@ -84,32 +107,35 @@ io.on("connection", (socket) => {
       io.in(room.name).emit('move-made', { event: 'MOVE', turn: room.turn, gameState: room.gameState });
       console.log(rooms);
     } */
-    const roomName = Object.values(socket.rooms)[1];
-    const room = rooms.get(roomName);
-    console.log('room:', room);
+    /*   const [defaultRoomName, gameRoomName, ...rest] = Object.values(socket.rooms);
+      const room = rooms.get(gameRoomName);
+      console.log('room:', room); */
     // send chat messages
     socket.on('chat-message', (arg) => {
+        const room = getUsersRoom(socket);
         if (room)
             io.in(room.name).emit('chat-message', { author: socket.id, message: arg.message });
     });
     // send information about the move
     socket.on('move-made', (arg) => {
-        sendCurrentGameState(arg, socket, room);
-    });
-    socket.on('leave-room', (arg) => {
-        var _a;
-        console.log('leave-room', socket.id);
-        //const roomName: string = Object.values(socket.rooms)[1];
-        (_a = rooms.get('room-0')) === null || _a === void 0 ? void 0 : _a.removePlayer(socket.id);
+        console.log('move-made', arg);
+        const room = getUsersRoom(socket);
+        console.log(room);
+        if (room)
+            sendCurrentGameState(arg, socket, room);
     });
     socket.on("create-room", (room, callback) => {
-        createRoom(room, callback);
+        return createRoom(room, callback);
     });
     socket.on("join-room", (roomInfo, callback) => {
         return joinRoom(socket, roomInfo, callback);
     });
+    socket.on('leave-room', (arg) => {
+        return leaveRoom(socket);
+    });
     // disconnect
-    socket.on('disconnect', (arg) => {
+    socket.on('disconnecting', (arg) => {
+        leaveAllRooms(socket);
         console.log(`user ${socket.id} disconnect`, { arg });
     });
 });
@@ -125,22 +151,22 @@ io.on("connection", (socket) => {
   console.log('callback:', callback);
   callback("got it");
 }); */
-io.of("/").adapter.on("join-room", (room, id) => {
-    console.log(`socket ${id} has joined room ${room}`);
-});
-io.of("/").adapter.on("leave-room", (room, id) => {
-    const gameRoom = rooms.get(room);
-    if (!gameRoom)
-        return;
-    gameRoom.removePlayer(id);
-    if (gameRoom.isEmpty())
-        gameRoom.resetGameState();
-    io.in(gameRoom.name).emit('chat-message', { author: 'SYSTEM', message: `User: ${id} left the room!` });
-    console.log(`user ${id} left the room ${room}`);
-});
-io.of("/").adapter.on("delete-room", (room) => {
-    console.log(`room ${room} was deleted`);
-});
+/* io.of("/").adapter.on("join-room", (room, id) => {
+  // console.log(`socket ${id} has joined room ${room}`);
+}); */
+/* io.of("/").adapter.on("leave-room", (room: string, id) => {
+  const gameRoom = rooms.get(room);
+  if (!gameRoom) return;
+
+  gameRoom.removePlayer(id);
+  if (gameRoom.isEmpty()) gameRoom.resetGameState();
+
+  io.in(gameRoom.name).emit('chat-message', {author: 'SYSTEM', message: `User: ${id} left the room!`});
+  console.log(`user ${id} left the room ${room}`);
+}); */
+/* io.of("/").adapter.on("delete-room", (room) => {
+  // console.log(`room ${room} was deleted`);
+}); */
 httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
