@@ -1,19 +1,16 @@
 import React, { useRef } from 'react';
-import { socket } from '../socket';
 
-import { ChatMessage } from '../types';
+import { useGetMessagesQuery, useSendMessageMutation } from '../features/chat/chatApi';
 
-type Props = {
-  messages: ChatMessage[];
-}
-
-const Chat = function(props: Props) {
+const Chat = function() {
   console.log('Chat rerendered!');
+  const { data, error, isLoading } = useGetMessagesQuery();
+  const [ sendMessage ] = useSendMessageMutation();
   const newMessage = useRef<HTMLInputElement>(null);
 
   function sendChatMessage() {
     if (newMessage.current && newMessage.current.value) {
-      socket.emit('chat-message', { event: 'CHAT_MESSAGE', message: newMessage.current.value });
+      sendMessage(newMessage.current.value);
       newMessage.current.value = "";
     }
   }
@@ -26,14 +23,16 @@ const Chat = function(props: Props) {
   return (
     <>
       <ul className='border-solid border-2 border-sky-500 w-full h-52 p-1 overflow-auto'>
-          { props.messages.map((message, index) => (
+          {
+            data?.map((message, index) => (
               <li key={index} className="m-0 pt-2 pb-2 break-words">
-                  <span className='font-bold'>{message.author.substring(0, 3)}: </span>{message.message}
+                <span className='font-bold'>{message.author.substring(0, 6)}: </span>{message.message}
               </li>
-          ))}
+            ))
+          }
       </ul>
       <div className='flex'>
-          <input className="flex-auto w-10/12 m-0 p-1" type="text" /* value={newMessage} */
+          <input className="flex-auto w-10/12 m-0 p-1" type="text"
             ref={newMessage}
             onKeyDown={handleKeyDown}
             placeholder="Enter chat message..." 

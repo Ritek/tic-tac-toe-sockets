@@ -11,6 +11,9 @@ const Room_1 = __importDefault(require("./Room"));
 const PORT = 5000;
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
+app.get('/', (req, res) => {
+    res.status(200).send([]);
+});
 const httpServer = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(httpServer, {
     cors: {
@@ -24,6 +27,9 @@ rooms.set('room-2', new Room_1.default('room-2', true));
 setInterval(function () {
     io.emit('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
 }, 5000);
+/* setInterval(function() {
+  io.in('room-0').emit('chat-message', {author: 'System', message: 'test test'});
+}, 3000); */
 function findRoomToJoin() {
     const temp = Array.from(rooms.values()).find(room => room.canJoinRoom());
     return temp ? temp : findEmptyRoom();
@@ -31,12 +37,11 @@ function findRoomToJoin() {
 function findEmptyRoom() {
     return Array.from(rooms.values()).find(room => !room.playerX && !room.playerO);
 }
-function sendCurrentGameState(arg, socket, room) {
+function changeCurrentGameState(arg, socket, room) {
     // console.log('move-made', arg);
     if (!room)
         return;
-    if (!room)
-        return socket.emit('ERROR', { event: 'ERROR', message: `Not connected to any room!` });
+    // if (!room) return socket.emit('ERROR', {event: 'ERROR', message: `Not connected to any room!`});
     if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
         room.changeGameState(socket.id, arg.change);
         if (room.checkGameOver()) {
@@ -112,6 +117,7 @@ io.on("connection", (socket) => {
       console.log('room:', room); */
     // send chat messages
     socket.on('chat-message', (arg) => {
+        console.log('chat-message:', arg);
         const room = getUsersRoom(socket);
         if (room)
             io.in(room.name).emit('chat-message', { author: socket.id, message: arg.message });
@@ -120,9 +126,16 @@ io.on("connection", (socket) => {
     socket.on('move-made', (arg) => {
         console.log('move-made', arg);
         const room = getUsersRoom(socket);
+        room === null || room === void 0 ? void 0 : room.changeGameState(socket.id, arg.changedSquereIndex);
         console.log(room);
-        if (room)
-            sendCurrentGameState(arg, socket, room);
+        if (room === null || room === void 0 ? void 0 : room.checkGameOver()) {
+            return io.in(`${room.name}`).emit('move-made', {
+                event: 'GAME_OVER', winner: room.winner, turn: room.turn, gameState: room.gameState
+            });
+        }
+        return io.in(`${room === null || room === void 0 ? void 0 : room.name}`).emit('move-made', {
+            event: 'move-made', turn: room === null || room === void 0 ? void 0 : room.turn, gameState: room === null || room === void 0 ? void 0 : room.gameState
+        });
     });
     socket.on("create-room", (room, callback) => {
         return createRoom(room, callback);

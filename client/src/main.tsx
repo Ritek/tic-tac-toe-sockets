@@ -1,5 +1,8 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
+import { store } from './store';
+
 import App from './App'
 import './index.css';
 import HomeScreen from './components/HomeScreen/HomeScreen';
@@ -21,7 +24,9 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    {/* <App /> */}
-    <RouterProvider router={router} />
+    <Provider store={store}>
+      {/* <App /> */}
+      <RouterProvider router={router} />
+    </Provider>
   </React.StrictMode>,
 )

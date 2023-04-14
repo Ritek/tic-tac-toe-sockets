@@ -9,6 +9,10 @@ const PORT = 5000;
 const app = express();
 app.use(cors());
 
+app.get('/', (req, res) => {
+  res.status(200).send([]);
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -25,6 +29,10 @@ setInterval(function() {
   io.emit('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
 }, 5000);
 
+/* setInterval(function() {
+  io.in('room-0').emit('chat-message', {author: 'System', message: 'test test'});
+}, 3000); */
+
 function findRoomToJoin() {
   const temp = Array.from(rooms.values()).find(room => room.canJoinRoom());
   return temp ? temp : findEmptyRoom();
@@ -34,11 +42,11 @@ function findEmptyRoom() {
   return Array.from(rooms.values()).find(room => !room.playerX && !room.playerO);
 }
 
-function sendCurrentGameState(arg: any, socket: any, room: any) {
+function changeCurrentGameState(arg: any, socket: any, room: any) {
   // console.log('move-made', arg);
   if (!room) return;
 
-  if (!room) return socket.emit('ERROR', {event: 'ERROR', message: `Not connected to any room!`});
+  // if (!room) return socket.emit('ERROR', {event: 'ERROR', message: `Not connected to any room!`});
   if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
     room.changeGameState(socket.id, arg.change);
     
@@ -129,16 +137,28 @@ io.on("connection", (socket) => {
 
   // send chat messages
   socket.on('chat-message', (arg) => {
+    console.log('chat-message:', arg);
     const room = getUsersRoom(socket);
     if (room) io.in(room.name).emit('chat-message', {author: socket.id, message: arg.message});
   });
 
   // send information about the move
-  socket.on('move-made', (arg: {event: 'Move', change: number}) => {
+  socket.on('move-made', (arg: {event: 'Move', changedSquereIndex: number}) => {
     console.log('move-made', arg);
     const room = getUsersRoom(socket);
+    
+    room?.changeGameState(socket.id, arg.changedSquereIndex);
     console.log(room);
-    if (room) sendCurrentGameState(arg, socket, room);
+    
+    if (room?.checkGameOver()) {
+      return io.in(`${room.name}`).emit('move-made', { 
+        event: 'GAME_OVER', winner: room.winner, turn: room.turn, gameState: room.gameState 
+      });
+    }
+
+    return io.in(`${room?.name}`).emit('move-made', { 
+      event: 'move-made', turn: room?.turn, gameState: room?.gameState 
+    });
   });
 
   socket.on("create-room", (room: {name: string, isPrivate: boolean, password?: string}, callback) => {
