@@ -1,6 +1,26 @@
-import rooms, { createPublicRoom, createPrivateRoom } from './roomsDb';
+import rooms from './roomsDb';
+import Room2 from './Room2';
+import { NameDuplicateException } from './types';
+import { newRoomSchema } from './validators';
+import { z } from 'zod';
 
-// import { InvalidMoveException, NotAPLayerException } from './types';
+export function createPublicRoom(name: string): Room2 | NameDuplicateException {
+    if (rooms.get(name)) {
+        return new NameDuplicateException("Room with provided name already exisits!");
+    }
+
+    rooms.set(name, new Room2(name, false));
+    return new Room2(name, false);
+}
+
+export function createPrivateRoom(name: string, password: string): Room2 | NameDuplicateException {
+    if (rooms.get(name)) {
+        return new NameDuplicateException("Room with provided name already exisits!");
+    }
+    
+    rooms.set(name, new Room2(name, true, password));
+    return new Room2(name, true, password);
+}
 
 
 export function changeGameState(roomName: string, playerName: string, changedSquereIndex: number) {
@@ -21,38 +41,25 @@ export function changeGameState(roomName: string, playerName: string, changedSqu
     return newState;
 }
 
-/* export function changeGameState2(roomName: string, playerName: string, changedSquereIndex: number) {
-    const room = rooms.get(roomName);
-
-    if (!room) {
-        return { status: 400, error: 'Room of provided name does not exist!' };
-    }
-
-    const newState = room.changeGameState(playerName, changedSquereIndex);
-
-    if (newState instanceof InvalidMoveException || newState instanceof NotAPLayerException) {
-        console.log(newState);
-    };
-
-    if (room.winner) {
-        return { event: 'GAME-OVER', newState };
-    }
-
-    return { event: 'move-mage', newState };
-} */
-
 export function createRoom(name: string, isPrivate: boolean, password?: string) {
-    // validate roomDetails
+    try {
+        newRoomSchema.parse({name, isPrivate, password});
+    } catch(error: any) {
+        console.log(error.format());
+        if (error instanceof z.ZodError) {
+            return { status: 400, error: error.toString() };
+        }
+    }
     
     const newRoom = isPrivate && password
         ? createPrivateRoom(name, password)
         : createPublicRoom(name);
 
     if (newRoom instanceof Error) {
-        return { status: 400, error: newRoom.message }
+        return { status: 400, error: newRoom.message };
     }
     
-    return { status: 201, newRoom }
+    return { status: 201, newRoom };
 }
 
 export function joinRoom(roomName: string, playerName: string, password?: string) {

@@ -55,12 +55,14 @@ io.on("connection", (socket) => {
     });
   
     socket.on("create-room", (roomDetails: {name: string, isPrivate: boolean, password?: string}, callback) => {
+        console.log(roomDetails);
         const newRoom = createRoom(roomDetails.name, roomDetails.isPrivate, roomDetails.password);
 
         return callback(newRoom);
     });
   
     socket.on("join-room", (roomInfo: {name: string, password?: string}, callback) => {
+        console.log(roomInfo);
         const newPlayer = joinRoom(roomInfo.name, socket.id, roomInfo.password);
 
         if (!hasError(newPlayer)) {

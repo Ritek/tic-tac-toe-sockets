@@ -50,10 +50,12 @@ io.on("connection", (socket) => {
         });
     });
     socket.on("create-room", (roomDetails, callback) => {
+        console.log(roomDetails);
         const newRoom = (0, connectionService_1.createRoom)(roomDetails.name, roomDetails.isPrivate, roomDetails.password);
         return callback(newRoom);
     });
     socket.on("join-room", (roomInfo, callback) => {
+        console.log(roomInfo);
         const newPlayer = (0, connectionService_1.joinRoom)(roomInfo.name, socket.id, roomInfo.password);
         if (!hasError(newPlayer)) {
             socket.join(roomInfo.name);

@@ -22,7 +22,7 @@ type Props = {
 
 function CreateRoomModal(props: Props) {
     const [ createRoom, { error, isError, isSuccess } ] = useCreateRoomMutation();
-    const [newRoom, setNewRoom] = useState<NewRoom>({name: '', isPrivate: false});
+    const [ newRoom, setNewRoom ] = useState<NewRoom>({name: '', isPrivate: false});
 
     function checkboxHandler() {
         if (newRoom.isPrivate) {
@@ -42,7 +42,11 @@ function CreateRoomModal(props: Props) {
     }
 
     function createRoomAndReset() {
-        createRoom({name: newRoom.name, isPrivate: false}).unwrap().then((result: any) => {
+        const newRoomDetails = newRoom.isPrivate 
+            ? { isPrivate: true, password: newRoom.password } as const
+            : { isPrivate: false } as const;
+
+        createRoom({name: newRoom.name, ...newRoomDetails}).unwrap().then((result: any) => {
             closeAndResetModal();
         }).catch(error => {
             console.log(error);
