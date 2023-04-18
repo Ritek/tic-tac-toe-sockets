@@ -1,10 +1,10 @@
 import React, { useRef } from 'react';
 
-import { useGetMessagesQuery, useSendMessageMutation } from '../features/chat/chatApi';
+import { useGetMessagesQuery, useSendMessageMutation } from '../globalApi';
 
 const Chat = function() {
-  console.log('Chat rerendered!');
-  const { data, error, isLoading } = useGetMessagesQuery();
+  // console.log('Chat rerendered!');
+  const { data: messages, error, isLoading } = useGetMessagesQuery();
   const [ sendMessage ] = useSendMessageMutation();
   const newMessage = useRef<HTMLInputElement>(null);
 
@@ -24,7 +24,7 @@ const Chat = function() {
     <>
       <ul className='border-solid border-2 border-sky-500 w-full h-52 p-1 overflow-auto'>
           {
-            data?.map((message, index) => (
+            messages?.map((message, index) => (
               <li key={index} className="m-0 pt-2 pb-2 break-words">
                 <span className='font-bold'>{message.author.substring(0, 6)}: </span>{message.message}
               </li>

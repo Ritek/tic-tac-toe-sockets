@@ -11,6 +11,7 @@ class Room {
         this.turn = 0;
         this.name = name;
         this.isPrivateRoom = privateRoom;
+        this.password = 'password';
         this.gameState = new Array(9).fill(null);
         this.playerX = playerX;
         this.playerO = playerO;

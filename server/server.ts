@@ -26,6 +26,7 @@ rooms.set('room-1', new Room('room-1', false));
 rooms.set('room-2', new Room('room-2', true));
 
 setInterval(function() {
+  console.log('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
   io.emit('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
 }, 5000);
 
@@ -43,10 +44,8 @@ function findEmptyRoom() {
 }
 
 function changeCurrentGameState(arg: any, socket: any, room: any) {
-  // console.log('move-made', arg);
-  if (!room) return;
+  console.log('arg:', arg);
 
-  // if (!room) return socket.emit('ERROR', {event: 'ERROR', message: `Not connected to any room!`});
   if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
     room.changeGameState(socket.id, arg.change);
     
@@ -77,6 +76,14 @@ function joinRoom(socket: any, roomInfo: any, callback: Function) {
   if (!foundRoom) {
     return callback({status: 404, error: `Room with name '${roomInfo.name}' doesn't exists!`});
   } 
+
+  if (foundRoom.playerO === socket.id || foundRoom.playerX === socket.id) {
+    return callback({status: 200});
+  }
+
+  if (roomInfo.password !== foundRoom.password) {
+    return callback({status: 404, error: `Incorrect password!`});
+  }
   
   if (foundRoom.twoPlayerPresent()) {
     return callback({status: 404, error: `Room with name '${roomInfo.name}' is full!`});
@@ -84,7 +91,7 @@ function joinRoom(socket: any, roomInfo: any, callback: Function) {
 
   rooms.get(roomInfo.name)?.addPlayer(socket.id);
   socket.join(roomInfo.name);
-  return callback({status: 200, error: `Joining room '${roomInfo.name}'!`});
+  return callback({status: 200});
 }
 
 function leaveRoom(socket: Socket) {
@@ -147,18 +154,9 @@ io.on("connection", (socket) => {
     console.log('move-made', arg);
     const room = getUsersRoom(socket);
     
-    room?.changeGameState(socket.id, arg.changedSquereIndex);
-    console.log(room);
-    
-    if (room?.checkGameOver()) {
-      return io.in(`${room.name}`).emit('move-made', { 
-        event: 'GAME_OVER', winner: room.winner, turn: room.turn, gameState: room.gameState 
-      });
-    }
+    if (!room) return;
 
-    return io.in(`${room?.name}`).emit('move-made', { 
-      event: 'move-made', turn: room?.turn, gameState: room?.gameState 
-    });
+    return changeCurrentGameState(arg, socket, room);
   });
 
   socket.on("create-room", (room: {name: string, isPrivate: boolean, password?: string}, callback) => {
@@ -166,6 +164,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-room", (roomInfo: {name: string, password?: string}, callback) => {
+    console.log('join-room', roomInfo);
     return joinRoom(socket, roomInfo, callback);
   });
 

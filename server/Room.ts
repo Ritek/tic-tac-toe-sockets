@@ -5,6 +5,7 @@ export default class Room {
 
   name: string;
   isPrivateRoom: boolean;
+  password: string;
   gameState: (string | null)[];
 
   playerX?: string;
@@ -17,6 +18,7 @@ export default class Room {
 
     this.name = name;
     this.isPrivateRoom = privateRoom;
+    this.password = 'password';
     this.gameState = new Array<string | null>(9).fill(null);
 
     this.playerX = playerX;

@@ -25,6 +25,7 @@ rooms.set('room-0', new Room_1.default('room-0', false));
 rooms.set('room-1', new Room_1.default('room-1', false));
 rooms.set('room-2', new Room_1.default('room-2', true));
 setInterval(function () {
+    console.log('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
     io.emit('all-rooms', Array.from(rooms, room => room[1].getBasicInfo()));
 }, 5000);
 /* setInterval(function() {
@@ -38,10 +39,7 @@ function findEmptyRoom() {
     return Array.from(rooms.values()).find(room => !room.playerX && !room.playerO);
 }
 function changeCurrentGameState(arg, socket, room) {
-    // console.log('move-made', arg);
-    if (!room)
-        return;
-    // if (!room) return socket.emit('ERROR', {event: 'ERROR', message: `Not connected to any room!`});
+    console.log('arg:', arg);
     if (room.twoPlayerPresent() && room.isPlayersTurn(socket.id)) {
         room.changeGameState(socket.id, arg.change);
         if (room.checkGameOver()) {
@@ -69,12 +67,18 @@ function joinRoom(socket, roomInfo, callback) {
     if (!foundRoom) {
         return callback({ status: 404, error: `Room with name '${roomInfo.name}' doesn't exists!` });
     }
+    if (foundRoom.playerO === socket.id || foundRoom.playerX === socket.id) {
+        return callback({ status: 200 });
+    }
+    if (roomInfo.password !== foundRoom.password) {
+        return callback({ status: 404, error: `Incorrect password!` });
+    }
     if (foundRoom.twoPlayerPresent()) {
         return callback({ status: 404, error: `Room with name '${roomInfo.name}' is full!` });
     }
     (_a = rooms.get(roomInfo.name)) === null || _a === void 0 ? void 0 : _a.addPlayer(socket.id);
     socket.join(roomInfo.name);
-    return callback({ status: 200, error: `Joining room '${roomInfo.name}'!` });
+    return callback({ status: 200 });
 }
 function leaveRoom(socket) {
     const roomName = Array.from(socket.rooms)[socket.rooms.size - 1];
@@ -126,21 +130,15 @@ io.on("connection", (socket) => {
     socket.on('move-made', (arg) => {
         console.log('move-made', arg);
         const room = getUsersRoom(socket);
-        room === null || room === void 0 ? void 0 : room.changeGameState(socket.id, arg.changedSquereIndex);
-        console.log(room);
-        if (room === null || room === void 0 ? void 0 : room.checkGameOver()) {
-            return io.in(`${room.name}`).emit('move-made', {
-                event: 'GAME_OVER', winner: room.winner, turn: room.turn, gameState: room.gameState
-            });
-        }
-        return io.in(`${room === null || room === void 0 ? void 0 : room.name}`).emit('move-made', {
-            event: 'move-made', turn: room === null || room === void 0 ? void 0 : room.turn, gameState: room === null || room === void 0 ? void 0 : room.gameState
-        });
+        if (!room)
+            return;
+        return changeCurrentGameState(arg, socket, room);
     });
     socket.on("create-room", (room, callback) => {
         return createRoom(room, callback);
     });
     socket.on("join-room", (roomInfo, callback) => {
+        console.log('join-room', roomInfo);
         return joinRoom(socket, roomInfo, callback);
     });
     socket.on('leave-room', (arg) => {

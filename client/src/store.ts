@@ -1,16 +1,24 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
-import { chatApi } from './features/chat/chatApi';
-import { gameApi } from './features/game/gameApi';
+// import { chatApi } from './features/chat/chatApi';
+// import { gameApi } from './features/game/gameApi';
+// import { roomApi } from './features/room/roomApi';
+import { globalApi } from './globalApi';
 
 export const store = configureStore({
-  reducer: {
+/*   reducer: {
     [chatApi.reducerPath]: chatApi.reducer,
     [gameApi.reducerPath]: gameApi.reducer,
+    [roomApi.reducerPath]: roomApi.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware()
-    .concat(chatApi.middleware, gameApi.middleware),
+    .concat(chatApi.middleware, gameApi.middleware, roomApi.middleware), */
+    reducer: {
+      [globalApi.reducerPath]: globalApi.reducer,
+    },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware()
+      .concat(globalApi.middleware)
 });
 
 setupListeners(store.dispatch);

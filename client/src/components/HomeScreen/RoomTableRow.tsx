@@ -8,8 +8,8 @@ const chainSVG = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
 
 type Room = {
     name: string;
-    players: number;
     isPrivate: boolean;
+    players: number; 
 }
 
 type Props = {

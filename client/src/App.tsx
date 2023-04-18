@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from "react-router-dom";
 import { socket } from './socket';
+
+import { useJoinRoomMutation } from './globalApi';
 
 import Board from './components/Board';
 import Chat from './components/Chat';
@@ -8,32 +11,29 @@ import WinnerModal from './components/WinnerModal';
 import { ChatMessage, ServerMessage } from './types';
 
 function App() {
-  // const [messages, setMessages] = useState(new Array<ChatMessage>());
-  // const [board, setBoard] = useState(new Array<'X' | 'O' | null>(9).fill(null));
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [ joinRoom ] = useJoinRoomMutation();
+
   const [winner, setWinner] = useState<string>("");
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    /* socket.on('chat-message', (msg) => {
-      setMessages([...messages, msg]); 
-    }); */
+    console.log('location changed!');
 
-    /* socket.on('move-made', (msg: ServerMessage) => {
-      console.log('move-made');
-      setBoard(msg.gameState);
+    const roomInfo = {
+      name: location.pathname.replace('/', ''),
+      password: ''
+    }
 
-      if ('winner' in msg) {
-        setWinner(msg.winner);
-        setShowModal(true);
-      }
-    }); */
-
-    return () => {
-      // socket.off('chat-message');
-      // socket.off('move-made');
-      socket.off();
-    };
-  }, [socket/* , messages */]);
+    joinRoom(roomInfo).unwrap().catch(error => {
+      // navigate('/');
+      console.log(error);
+    });
+    
+    return () => { };
+  }, []);
 
   return (
     <div className="p-8 mb-28">
