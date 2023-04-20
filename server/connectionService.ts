@@ -1,25 +1,17 @@
 import rooms from './roomsDb';
-import Room2 from './Room2';
+import Room from './Room';
 import { NameDuplicateException } from './types';
-import { newRoomSchema } from './validators';
-import { z } from 'zod';
+import { NewRoomSchema, NewRoom } from './validators';
 
-export function createPublicRoom(name: string): Room2 | NameDuplicateException {
-    if (rooms.get(name)) {
+function createNewRoom(newRoomParams: NewRoom) {
+    if (rooms.get(newRoomParams.name)) {
         return new NameDuplicateException("Room with provided name already exisits!");
     }
 
-    rooms.set(name, new Room2(name, false));
-    return new Room2(name, false);
-}
+    const newRoom = new Room(newRoomParams);
+    rooms.set(newRoom.name, newRoom);
 
-export function createPrivateRoom(name: string, password: string): Room2 | NameDuplicateException {
-    if (rooms.get(name)) {
-        return new NameDuplicateException("Room with provided name already exisits!");
-    }
-    
-    rooms.set(name, new Room2(name, true, password));
-    return new Room2(name, true, password);
+    return newRoom;
 }
 
 
@@ -36,30 +28,28 @@ export function changeGameState(roomName: string, playerName: string, changedSqu
         return { error: newState.message };
     }
 
-    // check for winner
+    if (room.winner) {
+        return { event: 'GAME_OVER', winner: room.winner, 
+            turn: room.turn, boardState: room.boardState } 
+    }
+
+    console.log('room after:', room);
 
     return newState;
 }
 
-export function createRoom(name: string, isPrivate: boolean, password?: string) {
-    try {
-        newRoomSchema.parse({name, isPrivate, password});
-    } catch(error: any) {
-        console.log(error.format());
-        if (error instanceof z.ZodError) {
-            return { status: 400, error: error.toString() };
-        }
+export function createRoom(newRoomParams: NewRoom) {
+    const validated = NewRoomSchema.safeParse(newRoomParams);
+    
+    if (!validated.success) {
+        return { status: 400, issues: validated.error.issues };
     }
     
-    const newRoom = isPrivate && password
-        ? createPrivateRoom(name, password)
-        : createPublicRoom(name);
+    const newRoom = createNewRoom(validated.data);
 
-    if (newRoom instanceof Error) {
-        return { status: 400, error: newRoom.message };
-    }
-    
-    return { status: 201, newRoom };
+    return newRoom instanceof Error
+        ? { status: 400, error: newRoom.message }
+        : { status: 201, newRoomName: newRoom.name };
 }
 
 export function joinRoom(roomName: string, playerName: string, password?: string) {
@@ -84,7 +74,7 @@ export function leaveRoom(roomName: string, playerName: string) {
         return { status: 400, error: 'Room of provided name does not exist!' };
     }
 
-    const removedPlayer = room.removePlayer(playerName);
+    /* const removedPlayer =  */room.removePlayer(playerName);
 
     return { status: 200 };
 }

@@ -1,101 +1,111 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const types_1 = require("./types");
 class Room {
-    constructor(name, privateRoom = false, playerX = undefined, playerO = undefined) {
-        this.isEmpty = () => !this.playerX && !this.playerO;
-        this.canJoinRoom = () => !this.playerX || !this.playerO;
-        this.twoPlayerPresent = () => this.playerX && this.playerO;
-        this.isValidMove = (moveIndex) => this.gameState[moveIndex] === null;
-        this.finished = false;
-        this.winner = undefined;
+    constructor(params) {
+        this.name = params.name;
+        this.isPrivate = params.isPrivate;
+        this.password = params.password;
         this.turn = 0;
-        this.name = name;
-        this.isPrivateRoom = privateRoom;
-        this.password = 'password';
-        this.gameState = new Array(9).fill(null);
-        this.playerX = playerX;
-        this.playerO = playerO;
+        this.boardState = new Array(9).fill(null);
     }
-    getBasicInfo() {
+    getPlayerByName(name) {
+        var _a, _b;
+        if (((_a = this.playerX) === null || _a === void 0 ? void 0 : _a.name) === name) {
+            return this.playerX;
+        }
+        if (((_b = this.playerO) === null || _b === void 0 ? void 0 : _b.name) === name) {
+            return this.playerO;
+        }
+        return null;
+    }
+    isPlayersTurn(playerToken) {
+        if (playerToken === 'X' && this.turn % 2 === 0) {
+            return true;
+        }
+        if (playerToken === 'O' && this.turn % 2 === 1) {
+            return true;
+        }
+        return false;
+    }
+    getRoomInfo() {
         const playerNum = 0 + (this.playerX ? 1 : 0) + (this.playerO ? 1 : 0);
         return {
             name: this.name,
-            isPrivate: this.isPrivateRoom,
+            isPrivate: this.isPrivate,
             players: playerNum
         };
     }
-    addPlayer(player) {
+    addPlayer(playerName, providedPassword) {
+        const player = this.getPlayerByName(playerName);
+        if (player) {
+            return Object.assign(Object.assign({}, player), { status: 'CONNECTED' });
+        }
+        if (this.playerX && this.playerO) {
+            return new types_1.RoomFullException("Room is full!");
+        }
+        if (this.password && this.password !== providedPassword) {
+            return new types_1.InvalidPasswordException("Invalid password!");
+        }
         if (!this.playerX) {
-            this.playerX = player;
-            return;
+            const newPlayer = { token: 'X', name: playerName, status: 'CONNECTED' };
+            this.playerX = newPlayer;
+            return newPlayer;
         }
-        if (!this.playerO) {
-            this.playerO = player;
-            return;
-        }
-    }
-    removePlayer(player) {
-        if (this.playerX === player) {
-            this.playerX = undefined;
-            return;
-        }
-        if (this.playerO === player) {
-            this.playerO = undefined;
-            return;
+        else {
+            const newPlayer = { token: 'O', name: playerName, status: 'CONNECTED' };
+            this.playerO = newPlayer;
+            return newPlayer;
         }
     }
-    isPlayersTurn(player) {
-        if (player === this.playerX && this.turn % 2 === 0)
-            return true;
-        if (player === this.playerO && this.turn % 2 === 1)
-            return true;
-        return false;
-    }
-    changeGameState(player, index) {
-        const playerChar = this.playerX === player ? 'X' : 'O';
-        if (this.gameState[index] === null) {
-            this.gameState[index] = playerChar;
-            this.turn++;
+    removePlayer(playerName) {
+        const player = this.getPlayerByName(playerName);
+        if (!player) {
+            return new types_1.NotAPLayerException("Not a player!");
         }
+        player.token === 'X'
+            ? this.playerX = undefined
+            : this.playerO = undefined;
+        return Object.assign(Object.assign({}, player), { status: 'DISCONNECTED' });
     }
-    checkLine(line) {
-        if (this.gameState[line[0]]
-            && this.gameState[line[0]] === this.gameState[line[1]]
-            && this.gameState[line[0]] === this.gameState[line[2]]) {
-            this.winner = this.gameState[line[0]] === 'X' ? 'player X' : 'player O';
-            this.finished = true;
-            return true;
+    changeGameState(playerName, changedTileIndex) {
+        const player = this.getPlayerByName(playerName);
+        if (!player) {
+            return new types_1.NotAPLayerException("Not a player!");
         }
-        return false;
+        if (!this.isPlayersTurn(player.token)) {
+            return new types_1.InvalidMoveException("Not a player's turn!");
+        }
+        if (this.boardState[changedTileIndex] !== null) {
+            return new types_1.InvalidMoveException("Tile was already changed!");
+        }
+        this.boardState[changedTileIndex] = player.token;
+        this.turn++;
+        this.checkForWinner();
+        return { boardState: this.boardState, turn: this.turn };
     }
-    checkGameOver() {
+    checkForWinner() {
         const winningLines = [
-            [0, 1, 2],
-            [3, 4, 5],
-            [6, 7, 8],
-            [0, 3, 6],
-            [1, 4, 7],
-            [2, 5, 8],
-            [0, 4, 8],
-            [2, 4, 6],
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6], // diagonal
         ];
         if (this.turn === 9) {
             this.winner = "draw";
-            this.finished = true;
             return true;
         }
         for (const line of winningLines) {
-            console.log("Line:", line, " is ", this.checkLine(line));
-            if (this.checkLine(line))
-                return true;
+            const firstElem = this.boardState[line[0]];
+            const checkLine = line.every(index => {
+                return firstElem && this.boardState[index] === firstElem;
+            });
+            console.log("Line:", line, " is ", checkLine);
+            if (checkLine && firstElem) {
+                this.winner = firstElem;
+                return;
+            }
         }
-        return false;
-    }
-    resetGameState() {
-        this.turn = 0;
-        [this.playerX, this.playerO] = [this.playerO, this.playerX];
-        this.gameState = this.gameState.fill(null);
-        this.finished = true;
+        return;
     }
 }
 exports.default = Room;

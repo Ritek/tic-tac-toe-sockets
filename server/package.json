@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "dev": "yarn tsc && node out/server2.js"
+    "dev": "yarn tsc && node out/server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

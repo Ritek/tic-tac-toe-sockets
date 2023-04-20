@@ -1,28 +1,32 @@
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 
-const newPublicRoomSchema = z.object({
-    name: z.string().min(3).max(7).trim(),
+const RoomNameSchema = z.string().min(3).max(7).trim();
+const RoomPasswordSchema = z.string().min(3).max(10).trim();
+
+const NewPublicRoomSchema = z.object({
+    name: RoomNameSchema,
     isPrivate: z.literal(false),
     password: z.undefined()
 });
 
-const newPrivateRoomSchema = z.object({
-    name: z.string().min(3).max(7).trim(),
+const NewPrivateRoomSchema = z.object({
+    name: RoomNameSchema,
     isPrivate: z.literal(true),
-    password: z.string().min(3).max(10).trim()
+    password: RoomPasswordSchema
 });
 
-export const newRoomSchema = z.union([
-    newPublicRoomSchema,
-    newPrivateRoomSchema
+export const NewRoomSchema = z.union([
+    NewPublicRoomSchema,
+    NewPrivateRoomSchema
 ]);
 
-// export const newRoomSchema = z.object({
-//     name: z.string(),
-//     isPrivate: z.boolean(),
-//     password: z.string().optional()
-// }).refine(schema => schema.isPrivate ? schema.password : true, {
-//     params: {password: true}, message: 'Private room requires password'
-// });
+export type NewRoom = z.infer<typeof NewRoomSchema>;
+export function validateNewRoomParams(newRoom: NewRoom) {
 
-    
+}
+
+
+const JoinRoomSchema = z.union([
+    z.object({ name: RoomNameSchema }),
+    z.object({ name: RoomNameSchema, password: RoomPasswordSchema }),
+]);

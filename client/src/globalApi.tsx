@@ -109,12 +109,12 @@ export const globalApi = createApi({
                 try {
                     await cacheDataLoaded;
         
-                    const listener = (event: {event: string, turn: number, gameState: []}) => {
+                    const listener = (event: {event: string, turn: number, board: []}) => {
                         console.log('event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {
-                            event.gameState.forEach((state, index) => {
+                            event.board.forEach((state, index) => {
                                 draft[index] !== state ? draft[index] = state : draft[index]
                             })
                         });

@@ -1,8 +1,12 @@
-import Room2 from './Room2';
+import Room from './Room';
 
-const rooms = new Map<string, Room2>();
-rooms.set('room-0', new Room2('room-0', false));
-rooms.set('room-1', new Room2('room-1', false));
-rooms.set('room-2', new Room2('room-2', true, 'password'));
+const rooms = new Map<string, Room>();
+rooms.set('room-0', new Room({ name: 'room-0', isPrivate: false }));
+rooms.set('room-1', new Room({ name: 'room-1', isPrivate: false }));
+rooms.set('room-2', new Room({ name: 'room-2', isPrivate: true, password: 'password' }));
+
+export function getRoomInfo() {
+    return Array.from(rooms, room => room[1].getRoomInfo());
+}
 
 export default rooms;

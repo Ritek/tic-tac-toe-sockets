@@ -82,7 +82,7 @@ function CreateRoomModal(props: Props) {
                     }
                 </div>
 
-                { error ? <p className='mt-10 text-red-600'>{ (error as any).error }</p> : null }
+                {/* { error ? <p className='mt-10 text-red-600'>{ (error as any).error }</p> : null } */}
 
                 <button className='mt-10 w-full p-2 bg-sky-600 rounded-md' onClick={createRoomAndReset}>Create</button>
             

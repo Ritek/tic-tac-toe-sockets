@@ -1,25 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.newRoomSchema = void 0;
+exports.validateNewRoomParams = exports.NewRoomSchema = void 0;
 const zod_1 = require("zod");
-const newPublicRoomSchema = zod_1.z.object({
-    name: zod_1.z.string().min(3).max(7).trim(),
+const RoomNameSchema = zod_1.z.string().min(3).max(7).trim();
+const RoomPasswordSchema = zod_1.z.string().min(3).max(10).trim();
+const NewPublicRoomSchema = zod_1.z.object({
+    name: RoomNameSchema,
     isPrivate: zod_1.z.literal(false),
     password: zod_1.z.undefined()
 });
-const newPrivateRoomSchema = zod_1.z.object({
-    name: zod_1.z.string().min(3).max(7).trim(),
+const NewPrivateRoomSchema = zod_1.z.object({
+    name: RoomNameSchema,
     isPrivate: zod_1.z.literal(true),
-    password: zod_1.z.string().min(3).max(10).trim()
+    password: RoomPasswordSchema
 });
-exports.newRoomSchema = zod_1.z.union([
-    newPublicRoomSchema,
-    newPrivateRoomSchema
+exports.NewRoomSchema = zod_1.z.union([
+    NewPublicRoomSchema,
+    NewPrivateRoomSchema
 ]);
-// export const newRoomSchema = z.object({
-//     name: z.string(),
-//     isPrivate: z.boolean(),
-//     password: z.string().optional()
-// }).refine(schema => schema.isPrivate ? schema.password : true, {
-//     params: {password: true}, message: 'Private room requires password'
-// });
+function validateNewRoomParams(newRoom) {
+}
+exports.validateNewRoomParams = validateNewRoomParams;
+const JoinRoomSchema = zod_1.z.union([
+    zod_1.z.object({ name: RoomNameSchema }),
+    zod_1.z.object({ name: RoomNameSchema, password: RoomPasswordSchema }),
+]);

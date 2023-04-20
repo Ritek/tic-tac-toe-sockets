@@ -11,8 +11,8 @@ import CreateRoomModal from './CreateRoomModal';
 function HomeScreen() {
     // console.log('Rendered HomeScreen');
     const { data: rooms } = useGetRoomsQuery();
-    const [ createRoom, { error: createRoomError } ] = useCreateRoomMutation();
-    const [ joinRoom, { error: joinRoomError } ] = useJoinRoomMutation();
+    // const [ createRoom, { error: createRoomError } ] = useCreateRoomMutation();
+    // const [ joinRoom, { error: joinRoomError } ] = useJoinRoomMutation();
     const [ leaveRoom ] = useLeaveRoomMutation();
 
     const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
@@ -23,7 +23,7 @@ function HomeScreen() {
         leaveRoom();
         return () => {
             console.log('Unmounted HomeScreen');
-            // socket.off();
+            socket.off();
         };
     }, []);
 
