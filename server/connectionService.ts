@@ -64,7 +64,9 @@ export function joinRoom(roomName: string, playerName: string, password?: string
         return { status: 400, error: newPlayer.message };
     }
 
-    return { status: 200, newPlayer };
+    const gameState = room.getGameState();
+
+    return { status: 200, newPlayer, gameState };
 }
 
 export function leaveRoom(roomName: string, playerName: string) {

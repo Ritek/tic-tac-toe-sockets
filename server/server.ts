@@ -6,7 +6,7 @@ import cors from 'cors';
 import rooms from './roomsDb';
 
 import { changeGameState, createRoom, joinRoom, leaveRoom } from './connectionService';
-import { NewRoom } from "./validators";
+import { NewRoom, JoinRoom, Move, ChatMessage } from "./validators";
 
 const PORT = 5000;
 const app = express();
@@ -29,8 +29,6 @@ setInterval(function() {
 }, 5000);
 
 function getUserGameRoomName(userRooms: Set<string>) {
-    // const [defaultRoomName, gameRoomName, ...rest]: string[] = Array.from(userRooms);
-    // const gameRoomName = [...userRooms.values()].at(1);
     return [...userRooms.values()].at(1);
 }
 
@@ -39,7 +37,7 @@ function hasErrorField(obj: Object): boolean {
 }
 
 io.on("connection", (socket) => {
-    socket.on('chat-message', (arg) => {
+    socket.on('chat-message', (arg: ChatMessage) => {
         const usersRoomName = getUserGameRoomName(socket.rooms);
         if (!usersRoomName) return;
 
@@ -48,7 +46,7 @@ io.on("connection", (socket) => {
         });
     });
   
-    socket.on('move-made', (arg: {event: 'Move', changedSquereIndex: number}) => {
+    socket.on('move-made', (arg: Move) => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName) return;
 
@@ -67,15 +65,15 @@ io.on("connection", (socket) => {
         return callback(newRoom);
     });
   
-    socket.on("join-room", (roomInfo: {name: string, password?: string}, callback) => {
+    socket.on("join-room", (roomInfo: JoinRoom, callback) => {
         console.log(roomInfo);
-        const newPlayer = joinRoom(roomInfo.name, socket.id, roomInfo.password);
+        const newPlayerAndGameState = joinRoom(roomInfo.name, socket.id, roomInfo.password);
 
-        if (!hasErrorField(newPlayer)) {
+        if (!hasErrorField(newPlayerAndGameState)) {
             socket.join(roomInfo.name);
         }
 
-        return callback(newPlayer);
+        return callback(newPlayerAndGameState);
     });
   
     socket.on('leave-room', (arg) => {

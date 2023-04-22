@@ -68,6 +68,13 @@ class Room {
             : this.playerO = undefined;
         return Object.assign(Object.assign({}, player), { status: 'DISCONNECTED' });
     }
+    getGameState() {
+        return {
+            boardState: this.boardState,
+            turn: this.turn,
+            winner: this.winner
+        };
+    }
     changeGameState(playerName, changedTileIndex) {
         const player = this.getPlayerByName(playerName);
         if (!player) {

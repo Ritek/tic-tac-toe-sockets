@@ -11,7 +11,7 @@ import { NewRoom } from './validators'
 export type GameState = {
     boardState: BoardState;
     turn: number;
-    winner?: PlayerToken
+    winner?: PlayerToken | 'draw'
 }
 
 export type Player = {
@@ -112,6 +112,14 @@ export default class Room {
             : this.playerO = undefined;
 
         return {...player, status: 'DISCONNECTED'}
+    }
+
+    getGameState(): GameState {
+        return {
+            boardState: this.boardState,
+            turn: this.turn,
+            winner: this.winner
+        }
     }
 
     changeGameState(playerName: string, changedTileIndex: number): GameState | NotAPLayerException | InvalidMoveException {

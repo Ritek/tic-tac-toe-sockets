@@ -1,63 +1,51 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { socket } from './socket';
+import { ChatMessage, GameState, NewRoomParameters, AvaibleRoom, Player, JoinRoomParams } from './types'
 
-type ChatMessage = {
-    author: string;
-    message: string;
-}
-
-type BoardState = ('X' | 'O' | null)[];
-
-type AvaibleRoom = {
-    name: string;
-    isPrivate: boolean;
-    players: 0 | 1 | 2;
-}
-
-type NewRoom = {
-    name: string;
-} & ({
-    isPrivate: false;
-} | {
-    isPrivate: true;
-    password: string;
-});
-
-type NewRoomSuccessResponse = {
+type NewRoomResponseSuccess = {
     status: 201;
-    newRoom: {
-        name: string;
-    }
+    newRoom: { name: string; }
 }
 
-type NewRoomErrorResponse = {
+type NewRoomResponseFailure = {
     status: 409;
     error: string;
 }
 
-type NewRoomResponse = NewRoomSuccessResponse | NewRoomErrorResponse;
-type NewRoomMutationResult = {
-    data: NewRoomSuccessResponse;
-} | {
-    error: NewRoomErrorResponse;
-}
+type NewRoomResponse = NewRoomResponseSuccess | NewRoomResponseFailure;
+type NewRoomMutationResult<TResp extends NewRoomResponse> = 
+    TResp extends NewRoomResponseSuccess 
+        ? { data: TResp }
+        : { error: TResp };
 
-type JoinRoomRequest = {
-    name: string;
-    password?: string;
-}
-
-type JoinRoomResponse = {
+type JoinRoomResponseSuccess = {
     status: 200;
-} | {
+    newPlayer: Player;
+    gameState: GameState;
+}
+
+type JoinRoomResponseFailure = {    
     status: 400;
     errorMessage: string;
 }
-type JoinRoomMutationResult = {
-    data: { status: 200 }
-} | {
-    error: { status: 400, errorMessage: string }
-}
+
+type JoinRoomResponse = JoinRoomResponseSuccess | JoinRoomResponseFailure;
+type JoinRoomMutationResult<TResp extends JoinRoomResponse> = 
+    TResp extends JoinRoomResponseSuccess 
+        ? { data: TResp }
+        : { error: TResp };
+
+// type MutationResponse2<TResp extends Record<string, any>> = undefined extends TResp['error'] 
+//     ? { data: TResp }
+//     : { error: TResp } 
+
+// type MutationResponse<TResp extends Record<string, any>> = TResp['status'] extends 200
+//     ? { data: TResp }
+//     : { error: TResp } 
+
+// const x: MutationResponse<{status: 400}>;
+// const x2: MutationResponse<{status: 400}>;
+    
 
 export const globalApi = createApi({
     reducerPath: 'globalApi',
@@ -98,44 +86,40 @@ export const globalApi = createApi({
         sendMessage: build.mutation<unknown, string>({
             queryFn: (message) => {
                 socket.emit('chat-message', { event: 'CHAT_MESSAGE', message });
-                return { data: true };
+                return { data: null };
             }
         }),
 
         // Board API
-        getNewGameState: build.query<BoardState, void>({
-            queryFn: () => ({ data: [] }),
+        getNewGameState: build.query<GameState, void>({
+            queryFn: () => ({ data: {event: 'move-made', turn: 0, boardState: new Array(9).fill(null)} }),
             async onCacheEntryAdded(arg, { updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
                 try {
                     await cacheDataLoaded;
         
-                    const listener = (event: {event: string, turn: number, board: []}) => {
+                    const listener = (event: GameState) => {
+
                         console.log('event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {
-                            event.board.forEach((state, index) => {
-                                draft[index] !== state ? draft[index] = state : draft[index]
-                            })
+                            return event;
                         });
                     }
         
                     socket.on('move-made', (msg) => {
-                        console.log('move-made', msg);
                         listener(msg);
                     });
                 } catch {
-                  console.log('gameApi caught error!');
+                  console.log('getNewGameState caught error!');
                 }
                 await cacheEntryRemoved;
-                // socket.off('move-made');
             },
         }),
         makeMove: build.mutation<unknown, number>({
             queryFn: (changedSquereIndex) => {
-                console.log('makeMove');
                 socket.emit('move-made', { event: 'MOVE', changedSquereIndex });
-                return { data: true };
+                return { data: null };
             }
         }),
 
@@ -152,10 +136,9 @@ export const globalApi = createApi({
             
                         updateCachedData((draft) => {
                             draft.length = 0;
-                            /* event.forEach((room, iter) => {
+                            event.forEach((room, iter) => {
                                 draft[iter] = room;
-                            }); */
-                            draft.push(...event)
+                            });
                         });
                     }
 
@@ -164,15 +147,14 @@ export const globalApi = createApi({
                         listener(msg);
                     });
                 } catch {
-                  console.log('roomApi caught error!');
+                  console.log('getRooms caught error!');
                 }
                 await cacheEntryRemoved;
-                socket.off('all-rooms');
             },
         }),
-        createRoom: build.mutation<NewRoomResponse, NewRoom>({
+        createRoom: build.mutation<NewRoomResponse, NewRoomParameters>({
             queryFn: async (newRoom) => {
-                const temp = await new Promise<NewRoomMutationResult>((resolve, reject) => {
+                const temp = await new Promise<NewRoomMutationResult<NewRoomResponse>>((resolve, reject) => {
                     socket.emit("create-room", newRoom, (response: NewRoomResponse) => {
                         if (response.status === 201) {
                             resolve({data: response});
@@ -185,9 +167,9 @@ export const globalApi = createApi({
                 return temp;
             }
         }),
-        joinRoom: build.mutation<JoinRoomResponse, JoinRoomRequest>({
+        joinRoom: build.mutation<JoinRoomResponse, JoinRoomParams>({
             queryFn: async (roomDetails) => {
-                return await new Promise<JoinRoomMutationResult>((resolve) => {
+                return await new Promise<JoinRoomMutationResult<JoinRoomResponse>>((resolve) => {
                     socket.emit("join-room", roomDetails, (response: JoinRoomResponse) => {
                         if (response.status === 200) {
                             resolve({data: response});

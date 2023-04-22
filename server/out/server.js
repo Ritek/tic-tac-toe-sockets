@@ -26,8 +26,6 @@ setInterval(function () {
     io.emit('all-rooms', Array.from(roomsDb_1.default, room => room[1].getRoomInfo()));
 }, 5000);
 function getUserGameRoomName(userRooms) {
-    // const [defaultRoomName, gameRoomName, ...rest]: string[] = Array.from(userRooms);
-    // const gameRoomName = [...userRooms.values()].at(1);
     return [...userRooms.values()].at(1);
 }
 function hasErrorField(obj) {
@@ -58,11 +56,11 @@ io.on("connection", (socket) => {
     });
     socket.on("join-room", (roomInfo, callback) => {
         console.log(roomInfo);
-        const newPlayer = (0, connectionService_1.joinRoom)(roomInfo.name, socket.id, roomInfo.password);
-        if (!hasErrorField(newPlayer)) {
+        const newPlayerAndGameState = (0, connectionService_1.joinRoom)(roomInfo.name, socket.id, roomInfo.password);
+        if (!hasErrorField(newPlayerAndGameState)) {
             socket.join(roomInfo.name);
         }
-        return callback(newPlayer);
+        return callback(newPlayerAndGameState);
     });
     socket.on('leave-room', (arg) => {
         const userRoomName = getUserGameRoomName(socket.rooms);

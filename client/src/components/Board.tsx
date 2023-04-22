@@ -1,26 +1,22 @@
 import React from 'react';
 
-import { useGetNewGameStateQuery, useMakeMoveMutation } from '../globalApi';
+import { useMakeMoveMutation } from '../globalApi';
 
 import Square from './Square';
 
-const Board = function() {
+type Props = {
+  board?: ('X' | 'O' | null)[];
+}
+
+const Board = function(props: Props) {
   // console.log('Board rerendered!');
-  const { data: board, error, isLoading } = useGetNewGameStateQuery();
   const [ makeMove ] = useMakeMoveMutation();
 
-  function sendMoveMade(squareIndex: number) {
-    makeMove(squareIndex);
-  }
-
   function renderBoard() {
-    let temp = new Array(9).fill(null);
-    if (board && board.length > 0) {
-      temp = board;
-    }
+    const bordArr = props.board || new Array(9).fill(null);
 
-    return temp.map((square, i) => (
-      <Square key={i} value={square} index={i} handleClick={sendMoveMade} />
+    return bordArr.map((square, i) => (
+      <Square key={i} value={square} index={i} handleClick={() => makeMove(i)} />
     ));
   }
 

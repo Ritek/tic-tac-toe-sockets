@@ -3,6 +3,13 @@ export type ChatMessage = {
     message: string;
 }
 
+export type GameState = {
+    event: string;
+    winner?: string | undefined;
+    turn: number;
+    boardState: ('X' | 'O' | null)[];
+}
+
 export type NewGameStateMessage = {
     event: 'NEW_GAME_STATE';
     turn: number;
@@ -17,3 +24,29 @@ export type GameOverMessage = {
 }
   
 export type ServerMessage = NewGameStateMessage | GameOverMessage;
+
+export type AvaibleRoom = {
+    name: string;
+    isPrivate: boolean;
+    players: 0 | 1 | 2;
+}
+
+export type NewRoomParameters = {
+    name: string;
+} & ({
+    isPrivate: false;
+} | {
+    isPrivate: true;
+    password: string;
+});
+
+export type JoinRoomParams = {
+    name: string;
+    password?: string;
+}
+
+export type Player = {
+    token: 'X' | 'O';
+    name: string;
+    status: string;
+}
