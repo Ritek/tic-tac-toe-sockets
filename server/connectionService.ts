@@ -29,8 +29,8 @@ export function changeGameState(roomName: string, playerName: string, changedSqu
     }
 
     if (room.winner) {
-        return { event: 'GAME_OVER', winner: room.winner, 
-            turn: room.turn, boardState: room.boardState } 
+        return { event: 'GAME_OVER', winner: room.winner, ...newState } 
+        // return { event: 'GAME_OVER', winner: room.winner, turn: room.turn, boardState: room.boardState } 
     }
 
     console.log('room after:', room);

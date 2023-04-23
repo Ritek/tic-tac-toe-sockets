@@ -31,7 +31,11 @@ function WinnerModal(props: Props) {
             </div>
 
             <h1 className='text-4xl mb-4'>GAME OVER</h1>
-            <p className='text-2xl'> Player {props.winner} won!</p>
+            <p className='text-2xl'>{
+                props.winner === 'draw' 
+                    ? <>Draw</> 
+                    : <>Player {props.winner} won!</>
+            }</p>
 
             <div className='flex justify-center mb-4'>
                 <button className='rounded-md p-2 px-4 mt-4 bg-sky-600' 

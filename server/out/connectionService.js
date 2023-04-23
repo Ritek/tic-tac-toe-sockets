@@ -26,8 +26,8 @@ function changeGameState(roomName, playerName, changedSquereIndex) {
         return { error: newState.message };
     }
     if (room.winner) {
-        return { event: 'GAME_OVER', winner: room.winner,
-            turn: room.turn, boardState: room.boardState };
+        return Object.assign({ event: 'GAME_OVER', winner: room.winner }, newState);
+        // return { event: 'GAME_OVER', winner: room.winner, turn: room.turn, boardState: room.boardState } 
     }
     console.log('room after:', room);
     return newState;

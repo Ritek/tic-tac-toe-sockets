@@ -21,9 +21,9 @@ export type Player = {
 }
 
 export default class Room {
-    name: string;
-    isPrivate: boolean;
-    password?: string;
+    readonly name: string;
+    readonly isPrivate: boolean;
+    readonly password?: string;
 
     turn: number;
     boardState: BoardState;
@@ -43,15 +43,15 @@ export default class Room {
     }
 
     private getPlayerByName(name: string) {
-        if (this.playerX?.name === name) {
+        /* if (this.playerX?.name === name) {
             return this.playerX
         }
 
         if (this.playerO?.name === name) {
             return this.playerO;
-        }
+        } */
 
-        return null;
+        return [this.playerX, this.playerO].find(player => player?.name === name);
     }
 
     private isPlayersTurn(playerToken: PlayerToken) {
@@ -111,7 +111,25 @@ export default class Room {
             ? this.playerX = undefined
             : this.playerO = undefined;
 
+        if (!this.playerX && !this.playerO) {
+            this.resetGameState();
+        }
+
         return {...player, status: 'DISCONNECTED'}
+    }
+
+    getOtherPLayer(playerName: string) {
+        const player = this.getPlayerByName(playerName);
+        
+        if (!player) {
+            return new NotAPLayerException("Not a player!");
+        }
+
+        if (this.playerX && this.playerO) {
+            return [this.playerX, this.playerO].find(player => player?.name !== playerName);
+        } else {
+            return undefined;
+        }
     }
 
     getGameState(): GameState {
@@ -120,6 +138,12 @@ export default class Room {
             turn: this.turn,
             winner: this.winner
         }
+    }
+
+    resetGameState() {
+        this.boardState = new Array(9).fill(null);
+        this.turn = 0;
+        this.winner = undefined;
     }
 
     changeGameState(playerName: string, changedTileIndex: number): GameState | NotAPLayerException | InvalidMoveException {
@@ -144,17 +168,12 @@ export default class Room {
         return { boardState: this.boardState, turn: this.turn };
     }
 
-    checkForWinner() {
+    private checkForWinner() {
         const winningLines = [
             [0, 1, 2], [3, 4, 5], [6, 7, 8], // lines
             [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
             [0, 4, 8], [2, 4, 6],            // diagonal
         ];
-
-        if (this.turn === 9) {
-            this.winner = "draw";
-            return true;
-        }
 
         for (const line of winningLines) {
             const firstElem = this.boardState[line[0]];
@@ -167,6 +186,11 @@ export default class Room {
                 this.winner = firstElem;
                 return;
             }
+        }
+
+        if (this.turn === 9) {
+            this.winner = "draw";
+            return;
         }
           
         return;

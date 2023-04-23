@@ -8,6 +8,26 @@ import rooms from './roomsDb';
 import { changeGameState, createRoom, joinRoom, leaveRoom } from './connectionService';
 import { NewRoom, JoinRoom, Move, ChatMessage } from "./validators";
 
+interface ServerToClientEvents {
+    // noArg: () => void;
+    // basicEmit: (a: number, b: string, c: Buffer) => void;
+    // withAck: (d: string, callback: (e: number) => void) => void;
+
+    'all-rooms': (arg: any[]) => any[];
+    'chat-message': (arg: ChatMessage) => ChatMessage;
+    'move-made': () => any;
+  }
+  
+  interface ClientToServerEvents {
+    // hello: () => void;
+    'chat-message': (arg: ChatMessage) => void;
+    'move-made': (arg: Move) => void;
+    'create-room': (roomDetails: NewRoom, callback: () => void) => void;
+    'join-room': (roomInfo: JoinRoom, callback: () => void) => void;
+    'leave-room': () => void;
+    'disconnecting': () => void;
+  }
+
 const PORT = 5000;
 const app = express();
 app.use(cors());
@@ -17,7 +37,7 @@ app.get('/', (req, res) => {
 });
 
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+const io = new Server/* <ClientToServerEvents, ServerToClientEvents> */(httpServer, {
   cors: {
     origin: "http://127.0.0.1:5173"
   }
@@ -76,7 +96,7 @@ io.on("connection", (socket) => {
         return callback(newPlayerAndGameState);
     });
   
-    socket.on('leave-room', (arg) => {
+    socket.on('leave-room', () => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName) return;
 
@@ -87,7 +107,7 @@ io.on("connection", (socket) => {
     });
   
     // runs before disconnect
-    socket.on('disconnecting', (arg) => {
+    socket.on('disconnecting', () => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName) return;
 

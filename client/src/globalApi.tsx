@@ -43,7 +43,7 @@ type JoinRoomMutationResult<TResp extends JoinRoomResponse> =
 //     ? { data: TResp }
 //     : { error: TResp } 
 
-// const x: MutationResponse<{status: 400}>;
+// const x: MutationResponse<{status: 200}>;
 // const x2: MutationResponse<{status: 400}>;
     
 
