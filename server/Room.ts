@@ -6,7 +6,7 @@ export type PlayerToken = 'X' | 'O';
 
 export type BoardState = (PlayerToken | null)[];
 
-import { NewRoom } from './validators'
+import { NewRoom, RoomInformation } from './validators'
 
 export type GameState = {
     boardState: BoardState;
@@ -43,30 +43,15 @@ export default class Room {
     }
 
     private getPlayerByName(name: string) {
-        /* if (this.playerX?.name === name) {
-            return this.playerX
-        }
-
-        if (this.playerO?.name === name) {
-            return this.playerO;
-        } */
-
         return [this.playerX, this.playerO].find(player => player?.name === name);
     }
 
     private isPlayersTurn(playerToken: PlayerToken) {
-        if (playerToken === 'X' && this.turn % 2 === 0) {
-            return true;
-        }
-
-        if (playerToken === 'O' && this.turn % 2 === 1) {
-            return true;
-        }
-
-        return false;
+        return (playerToken === 'X' && this.turn % 2 === 0) 
+            || (playerToken === 'O' && this.turn % 2 === 1);
     }
 
-    getRoomInfo() {
+    getRoomInfo(): RoomInformation {
         const playerNum = 0 + (this.playerX ? 1 : 0) + (this.playerO ? 1 : 0);
         return {
             name: this.name,
@@ -141,6 +126,7 @@ export default class Room {
     }
 
     resetGameState() {
+        [this.playerX, this.playerO] = [this.playerO, this.playerX];
         this.boardState = new Array(9).fill(null);
         this.turn = 0;
         this.winner = undefined;
@@ -155,6 +141,10 @@ export default class Room {
 
         if (!this.isPlayersTurn(player.token)) {
             return new InvalidMoveException("Not a player's turn!");
+        }
+
+        if (!this.playerX || !this.playerO ) {
+            return new InvalidMoveException("Missing oponent!");
         }
 
         if (this.boardState[changedTileIndex] !== null) {

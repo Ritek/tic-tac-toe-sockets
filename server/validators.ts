@@ -30,6 +30,12 @@ const ChatMessageSchema = z.object({
     message: z.string().min(1).max(20)
 });
 
+export type RoomInformation = {
+    name: string;
+    isPrivate: boolean;
+    players: number;
+}
+
 export type NewRoom = z.infer<typeof NewRoomSchema>;
 export type JoinRoom = Pick<NewRoom, 'name' | 'password'>
 export type Move = z.infer<typeof MoveSchema>;

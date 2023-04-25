@@ -10,23 +10,11 @@ class Room {
         this.boardState = new Array(9).fill(null);
     }
     getPlayerByName(name) {
-        /* if (this.playerX?.name === name) {
-            return this.playerX
-        }
-
-        if (this.playerO?.name === name) {
-            return this.playerO;
-        } */
         return [this.playerX, this.playerO].find(player => (player === null || player === void 0 ? void 0 : player.name) === name);
     }
     isPlayersTurn(playerToken) {
-        if (playerToken === 'X' && this.turn % 2 === 0) {
-            return true;
-        }
-        if (playerToken === 'O' && this.turn % 2 === 1) {
-            return true;
-        }
-        return false;
+        return (playerToken === 'X' && this.turn % 2 === 0)
+            || (playerToken === 'O' && this.turn % 2 === 1);
     }
     getRoomInfo() {
         const playerNum = 0 + (this.playerX ? 1 : 0) + (this.playerO ? 1 : 0);
@@ -91,6 +79,7 @@ class Room {
         };
     }
     resetGameState() {
+        [this.playerX, this.playerO] = [this.playerO, this.playerX];
         this.boardState = new Array(9).fill(null);
         this.turn = 0;
         this.winner = undefined;
@@ -102,6 +91,9 @@ class Room {
         }
         if (!this.isPlayersTurn(player.token)) {
             return new types_1.InvalidMoveException("Not a player's turn!");
+        }
+        if (!this.playerX || !this.playerO) {
+            return new types_1.InvalidMoveException("Missing oponent!");
         }
         if (this.boardState[changedTileIndex] !== null) {
             return new types_1.InvalidMoveException("Tile was already changed!");

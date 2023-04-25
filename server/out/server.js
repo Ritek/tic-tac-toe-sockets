@@ -32,22 +32,22 @@ function hasErrorField(obj) {
     return 'error' in obj;
 }
 io.on("connection", (socket) => {
-    socket.on('chat-message', (arg) => {
+    socket.on('chat-message', (newChatMessage) => {
         const usersRoomName = getUserGameRoomName(socket.rooms);
         if (!usersRoomName)
             return;
         io.in(usersRoomName).emit('chat-message', {
-            author: socket.id, message: arg.message
+            author: socket.id, message: newChatMessage.message
         });
     });
-    socket.on('move-made', (arg) => {
+    socket.on('move-made', (newMove) => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName)
             return;
-        const result = (0, connectionService_1.changeGameState)(userRoomName, socket.id, arg.changedSquereIndex);
+        const result = (0, connectionService_1.changeGameState)(userRoomName, socket.id, newMove.changedSquereIndex);
         if (hasErrorField(result))
             return;
-        return io.in(userRoomName).emit('move-made', Object.assign({ event: 'move-made' }, result));
+        return io.in(userRoomName).emit('move-made', result);
     });
     socket.on("create-room", (roomDetails, callback) => {
         console.log(roomDetails);
@@ -62,7 +62,7 @@ io.on("connection", (socket) => {
         }
         return callback(newPlayerAndGameState);
     });
-    socket.on('leave-room', (arg) => {
+    socket.on('leave-room', () => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName)
             return;
@@ -72,7 +72,7 @@ io.on("connection", (socket) => {
         }
     });
     // runs before disconnect
-    socket.on('disconnecting', (arg) => {
+    socket.on('disconnecting', () => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName)
             return;

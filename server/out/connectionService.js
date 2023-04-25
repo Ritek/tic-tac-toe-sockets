@@ -36,7 +36,7 @@ exports.changeGameState = changeGameState;
 function createRoom(newRoomParams) {
     const validated = validators_1.NewRoomSchema.safeParse(newRoomParams);
     if (!validated.success) {
-        return { status: 400, issues: validated.error.issues };
+        return { status: 400, error: validated.error.issues };
     }
     const newRoom = createNewRoom(validated.data);
     return newRoom instanceof Error

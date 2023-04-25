@@ -6,27 +6,24 @@ import cors from 'cors';
 import rooms from './roomsDb';
 
 import { changeGameState, createRoom, joinRoom, leaveRoom } from './connectionService';
-import { NewRoom, JoinRoom, Move, ChatMessage } from "./validators";
+import { NewRoom, JoinRoom, Move, ChatMessage, RoomInformation } from "./validators";
+import { GameState } from "./Room";
+
 
 interface ServerToClientEvents {
-    // noArg: () => void;
-    // basicEmit: (a: number, b: string, c: Buffer) => void;
-    // withAck: (d: string, callback: (e: number) => void) => void;
-
-    'all-rooms': (arg: any[]) => any[];
-    'chat-message': (arg: ChatMessage) => ChatMessage;
-    'move-made': () => any;
-  }
-  
-  interface ClientToServerEvents {
-    // hello: () => void;
+    'all-rooms':    (arg: RoomInformation[]) => void;
     'chat-message': (arg: ChatMessage) => void;
-    'move-made': (arg: Move) => void;
-    'create-room': (roomDetails: NewRoom, callback: () => void) => void;
-    'join-room': (roomInfo: JoinRoom, callback: () => void) => void;
-    'leave-room': () => void;
+    'move-made':    (arg: GameState | {error: string}) => void;
+}
+  
+interface ClientToServerEvents {
+    'chat-message': (newChatMessage: ChatMessage) => void;
+    'move-made':    (newMove: Move) => void;
+    'create-room':  (roomDetails: NewRoom, callback: (arg: any) => void) => void;
+    'join-room':    (roomInfo: JoinRoom, callback: (arg: any) => void) => void;
+    'leave-room':   () => void;
     'disconnecting': () => void;
-  }
+}
 
 const PORT = 5000;
 const app = express();
@@ -37,7 +34,7 @@ app.get('/', (req, res) => {
 });
 
 const httpServer = createServer(app);
-const io = new Server/* <ClientToServerEvents, ServerToClientEvents> */(httpServer, {
+const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
     origin: "http://127.0.0.1:5173"
   }
@@ -57,25 +54,23 @@ function hasErrorField(obj: Object): boolean {
 }
 
 io.on("connection", (socket) => {
-    socket.on('chat-message', (arg: ChatMessage) => {
+    socket.on('chat-message', (newChatMessage: ChatMessage) => {
         const usersRoomName = getUserGameRoomName(socket.rooms);
         if (!usersRoomName) return;
 
         io.in(usersRoomName).emit('chat-message', {
-            author: socket.id, message: arg.message
+            author: socket.id, message: newChatMessage.message
         });
     });
   
-    socket.on('move-made', (arg: Move) => {
+    socket.on('move-made', (newMove: Move) => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName) return;
 
-        const result = changeGameState(userRoomName, socket.id, arg.changedSquereIndex);
+        const result = changeGameState(userRoomName, socket.id, newMove.changedSquereIndex);
         if (hasErrorField(result)) return;
 
-        return io.in(userRoomName).emit('move-made', { 
-            event: 'move-made', ...result
-        });
+        return io.in(userRoomName).emit('move-made', result);
     });
   
     socket.on("create-room", (roomDetails: NewRoom, callback) => {
@@ -117,8 +112,8 @@ io.on("connection", (socket) => {
         }
     });
 
-  });
+});
 
-  httpServer.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-  });
+});
