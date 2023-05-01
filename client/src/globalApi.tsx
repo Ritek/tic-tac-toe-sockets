@@ -45,6 +45,12 @@ type JoinRoomMutationResult<TResp extends JoinRoomResponse> =
 
 // const x: MutationResponse<{status: 200}>;
 // const x2: MutationResponse<{status: 400}>;
+
+type Session = {
+    sessionID: string;
+    userID: string;
+    username: string;
+}
     
 
 export const globalApi = createApi({
@@ -53,7 +59,46 @@ export const globalApi = createApi({
         console.log('baseQuery');
         return { data: [] };
     },
+    tagTypes: ['session'],
     endpoints: (build) => ({
+        // Session API
+        getSession: build.query<Session | undefined, void>({
+            queryFn: () => ({ data: undefined }),
+            providesTags: ['session'],
+            async onCacheEntryAdded(arg, { updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
+                try {
+                    await cacheDataLoaded;
+        
+                    const listener = (event: Session) => {
+                        console.log('event:', event);
+                        if (!event) return;
+            
+                        updateCachedData((draft) => {
+                            localStorage.setItem('sessionID', event.sessionID);
+                            return event;
+                        });
+                    }
+        
+                    socket.on('session', (msg) => {
+                        console.log('session', msg);
+                        listener(msg);
+                    });
+                } catch {
+                  console.log('globalApi -> getSession caught error!');
+                }
+                await cacheEntryRemoved;
+                socket.off('session');
+            },
+        }),
+        deleteSession: build.mutation<unknown, string>({
+            queryFn: (sessionID) => {
+                socket.emit('delete-session', sessionID);
+                localStorage.removeItem('sessionID');
+                return { data: null };
+            },
+            invalidatesTags: (result, error, arg) => [{ type: 'session' }],
+        }),
+
         // Chat API
         getMessages: build.query<ChatMessage[], void>({
             queryFn: () => ({ data: [] }),
@@ -190,7 +235,17 @@ export const globalApi = createApi({
 });
 
 export const { 
-    useGetMessagesQuery, useSendMessageMutation, 
-    useGetNewGameStateQuery, useMakeMoveMutation,
-    useGetRoomsQuery, useCreateRoomMutation, useJoinRoomMutation, useLeaveRoomMutation
+    useGetSessionQuery, 
+    useDeleteSessionMutation,
+
+    useGetMessagesQuery, 
+    useSendMessageMutation, 
+
+    useGetNewGameStateQuery, 
+    useMakeMoveMutation, 
+
+    useGetRoomsQuery, 
+    useCreateRoomMutation, 
+    useJoinRoomMutation, 
+    useLeaveRoomMutation
 } = globalApi;

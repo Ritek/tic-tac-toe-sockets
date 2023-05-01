@@ -33,7 +33,7 @@ function HomeScreen() {
     }
 
     return (
-        <div className='p-0.5 pt-4 sm:p-8 mb-28 mx-auto md:m-0 w-10/12 sm:w-1/2 sm:min-w-[500px]'>
+        <div className='pt-4 sm:p-8 mb-28 mx-auto md:m-0 w-10/12 sm:w-1/2 sm:min-w-[500px]'>
 
             <JoinRoomModal
                 isPrivate={selectedRoomName.current.isPrivate} 
@@ -48,7 +48,7 @@ function HomeScreen() {
             />
 
             <h1 className='text-6xl mb-4'>Available rooms</h1>
-            <h3 className='text-4xl mb-12'>Click a row to join a room</h3>
+            <h2 className='text-4xl mb-12'>Click a row to join a room</h2>
 
             <table className='w-full table-auto text-xl text-left'>
                 <thead>

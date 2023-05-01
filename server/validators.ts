@@ -41,6 +41,12 @@ export type JoinRoom = Pick<NewRoom, 'name' | 'password'>
 export type Move = z.infer<typeof MoveSchema>;
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
+export type Session = {
+    sessionID: string; 
+    userID: string;
+    username: string;
+}
+
 /* const JoinRoomSchema = z.union([
     z.object({ name: RoomNameSchema }),
     z.object({ name: RoomNameSchema, password: RoomPasswordSchema }),
