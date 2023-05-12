@@ -15,14 +15,14 @@ function createNewRoom(newRoomParams: NewRoom) {
 }
 
 
-export function changeGameState(roomName: string, playerName: string, changedSquereIndex: number) {
+export function changeGameState(roomName: string, userID: string, changedSquereIndex: number) {
     const room = rooms.get(roomName);
 
     if (!room) {
         return { error: 'Room of provided name does not exist!' };
     }
 
-    const newState = room.changeGameState(playerName, changedSquereIndex);
+    const newState = room.changeGameState(userID, changedSquereIndex);
     
     if (newState instanceof Error) {
         return { error: newState.message };
@@ -30,10 +30,7 @@ export function changeGameState(roomName: string, playerName: string, changedSqu
 
     if (room.winner) {
         return { event: 'GAME_OVER', winner: room.winner, ...newState } 
-        // return { event: 'GAME_OVER', winner: room.winner, turn: room.turn, boardState: room.boardState } 
     }
-
-    console.log('room after:', room);
 
     return newState;
 }
@@ -52,31 +49,31 @@ export function createRoom(newRoomParams: NewRoom) {
         : { status: 201, newRoomName: newRoom.name };
 }
 
-export function joinRoom(roomName: string, playerName: string, password?: string) {
+export function joinRoom(roomName: string, playerID: string, username: string, roomPassword?: string) {
     const room = rooms.get(roomName);
 
     if (!room) {
         return { status: 400, error: 'Room of provided name does not exist!' };
     }
 
-    const newPlayer = room.addPlayer(playerName, password);
-    if (newPlayer instanceof Error) {
-        return { status: 400, error: newPlayer.message };
-    }
+    const newPlayer = room.addPlayer(playerID, username, roomPassword);
 
-    const gameState = room.getGameState();
-
-    return { status: 200, newPlayer, gameState };
+    return newPlayer instanceof Error
+        ? { status: 400, error: newPlayer.message }
+        : { status: 200, newPlayer, gameState: room.getGameState() };
 }
 
-export function leaveRoom(roomName: string, playerName: string) {
+export function leaveRoom(roomName: string, playerID: string) {
     const room = rooms.get(roomName);
+    console.log('room', room);
 
     if (!room) {
+        console.log('Room of provided name does not exist!');
         return { status: 400, error: 'Room of provided name does not exist!' };
     }
 
-    /* const removedPlayer =  */room.removePlayer(playerName);
+    const x = room.removePlayer(playerID);
+    console.log(x);
 
     return { status: 200 };
 }

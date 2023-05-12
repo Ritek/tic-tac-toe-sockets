@@ -1,7 +1,5 @@
 import { RoomFullException, InvalidMoveException, NotAPLayerException, InvalidPasswordException } from './types';
 
-export type PlayerStaus = 'CONNECTED' | 'INACTIVE' | 'DISCONNECTED';
-
 export type PlayerToken = 'X' | 'O';
 
 export type BoardState = (PlayerToken | null)[];
@@ -9,6 +7,10 @@ export type BoardState = (PlayerToken | null)[];
 import { NewRoom, RoomInformation } from './validators'
 
 export type GameState = {
+    players: {
+        playerX: Player | undefined;
+        playerO: Player | undefined;
+    },
     boardState: BoardState;
     turn: number;
     winner?: PlayerToken | 'draw'
@@ -16,8 +18,9 @@ export type GameState = {
 
 export type Player = {
     token: PlayerToken;
-    name: string;
-    status: PlayerStaus;
+    userID: string;
+    username: string;
+    connected: boolean;
 }
 
 export default class Room {
@@ -42,8 +45,8 @@ export default class Room {
         this.boardState = new Array(9).fill(null);
     }
 
-    private getPlayerByName(name: string) {
-        return [this.playerX, this.playerO].find(player => player?.name === name);
+    private getPlayerByID(userID: string) {
+        return [this.playerX, this.playerO].find(player => player?.userID === userID);
     }
 
     private isPlayersTurn(playerToken: PlayerToken) {
@@ -60,10 +63,11 @@ export default class Room {
         }
     }
 
-    addPlayer(playerName: string, providedPassword?: string): Player | RoomFullException | InvalidPasswordException {
-        const player = this.getPlayerByName(playerName);
+    addPlayer(userID: string, username: string, providedPassword?: string): Player | RoomFullException | InvalidPasswordException {
+        const player = this.getPlayerByID(userID);
         if (player) {
-            return { ...player, status: 'CONNECTED' }
+            player.connected = true;
+            return { ...player, connected: true }
         }
         
         if (this.playerX && this.playerO) {
@@ -75,20 +79,22 @@ export default class Room {
         }
 
         if (!this.playerX) {
-            const newPlayer: Player = { token: 'X', name: playerName, status: 'CONNECTED' };
+            const newPlayer: Player = { token: 'X', userID, username, connected: true };
             this.playerX = newPlayer;
             return newPlayer;
         } else {
-            const newPlayer: Player = { token: 'O', name: playerName, status: 'CONNECTED' };
+            const newPlayer: Player = { token: 'O', userID, username, connected: true };
             this.playerO = newPlayer;
             return newPlayer;
         }
     }
 
-    removePlayer(playerName: string): Player | NotAPLayerException {
-        const player = this.getPlayerByName(playerName);
+    removePlayer(userID: string): Player | NotAPLayerException {
+        const player = this.getPlayerByID(userID);
+        console.log(player);
 
         if (!player) {
+            console.log("Not a player!");
             return new NotAPLayerException("Not a player!");
         }
 
@@ -96,22 +102,31 @@ export default class Room {
             ? this.playerX = undefined
             : this.playerO = undefined;
 
-        if (!this.playerX && !this.playerO) {
-            this.resetGameState();
-        }
+        console.log(this.playerX, this.playerO);
 
-        return {...player, status: 'DISCONNECTED'}
+        this.resetGameState();
+
+        return {...player, connected: false}
     }
 
-    getOtherPLayer(playerName: string) {
-        const player = this.getPlayerByName(playerName);
+    updatePlayerStatus(userID: string, status: 'connected' | 'disconnected') {
+        const player = [this.playerX, this.playerO].find(player => player?.userID === userID);
+        if (!player) return new NotAPLayerException("Not a player!"); 
+
+        const newStatus = status === 'connected';
+        player.connected = newStatus;
+        return player;
+    }
+
+    getOtherPlayer(userID: string) {
+        const player = this.getPlayerByID(userID);
         
         if (!player) {
             return new NotAPLayerException("Not a player!");
         }
 
         if (this.playerX && this.playerO) {
-            return [this.playerX, this.playerO].find(player => player?.name !== playerName);
+            return [this.playerX, this.playerO].find(player => player?.userID !== userID);
         } else {
             return undefined;
         }
@@ -119,6 +134,10 @@ export default class Room {
 
     getGameState(): GameState {
         return {
+            players: {
+                playerX: this.playerX,
+                playerO: this.playerO
+            },
             boardState: this.boardState,
             turn: this.turn,
             winner: this.winner
@@ -126,14 +145,19 @@ export default class Room {
     }
 
     resetGameState() {
-        [this.playerX, this.playerO] = [this.playerO, this.playerX];
+        if (this.playerX && this.playerO) {
+            [this.playerX, this.playerO] = [this.playerO, this.playerX];
+            this.playerX.token = 'X';
+            this.playerO.token = 'O';
+        }
+        
         this.boardState = new Array(9).fill(null);
         this.turn = 0;
         this.winner = undefined;
     }
 
-    changeGameState(playerName: string, changedTileIndex: number): GameState | NotAPLayerException | InvalidMoveException {
-        const player = this.getPlayerByName(playerName);
+    changeGameState(userID: string, changedTileIndex: number): GameState | NotAPLayerException | InvalidMoveException {
+        const player = this.getPlayerByID(userID);
 
         if (!player) {
             return new NotAPLayerException("Not a player!");
@@ -155,7 +179,7 @@ export default class Room {
         this.turn++;
         this.checkForWinner();
 
-        return { boardState: this.boardState, turn: this.turn };
+        return this.getGameState();
     }
 
     private checkForWinner() {
@@ -167,11 +191,10 @@ export default class Room {
 
         for (const line of winningLines) {
             const firstElem = this.boardState[line[0]];
-            const checkLine = line.every(index => {
-                return firstElem && this.boardState[index] === firstElem
-            });
+            const checkLine = line.every(index => 
+                firstElem && this.boardState[index] === firstElem
+            );
 
-            console.log("Line:", line, " is ", checkLine);
             if (checkLine && firstElem) {
                 this.winner = firstElem;
                 return;

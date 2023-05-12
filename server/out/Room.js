@@ -9,8 +9,8 @@ class Room {
         this.turn = 0;
         this.boardState = new Array(9).fill(null);
     }
-    getPlayerByName(name) {
-        return [this.playerX, this.playerO].find(player => (player === null || player === void 0 ? void 0 : player.name) === name);
+    getPlayerByID(userID) {
+        return [this.playerX, this.playerO].find(player => (player === null || player === void 0 ? void 0 : player.userID) === userID);
     }
     isPlayersTurn(playerToken) {
         return (playerToken === 'X' && this.turn % 2 === 0)
@@ -24,10 +24,11 @@ class Room {
             players: playerNum
         };
     }
-    addPlayer(playerName, providedPassword) {
-        const player = this.getPlayerByName(playerName);
+    addPlayer(userID, username, providedPassword) {
+        const player = this.getPlayerByID(userID);
         if (player) {
-            return Object.assign(Object.assign({}, player), { status: 'CONNECTED' });
+            player.connected = true;
+            return Object.assign(Object.assign({}, player), { connected: true });
         }
         if (this.playerX && this.playerO) {
             return new types_1.RoomFullException("Room is full!");
@@ -36,36 +37,45 @@ class Room {
             return new types_1.InvalidPasswordException("Invalid password!");
         }
         if (!this.playerX) {
-            const newPlayer = { token: 'X', name: playerName, status: 'CONNECTED' };
+            const newPlayer = { token: 'X', userID, username, connected: true };
             this.playerX = newPlayer;
             return newPlayer;
         }
         else {
-            const newPlayer = { token: 'O', name: playerName, status: 'CONNECTED' };
+            const newPlayer = { token: 'O', userID, username, connected: true };
             this.playerO = newPlayer;
             return newPlayer;
         }
     }
-    removePlayer(playerName) {
-        const player = this.getPlayerByName(playerName);
+    removePlayer(userID) {
+        const player = this.getPlayerByID(userID);
+        console.log(player);
         if (!player) {
+            console.log("Not a player!");
             return new types_1.NotAPLayerException("Not a player!");
         }
         player.token === 'X'
             ? this.playerX = undefined
             : this.playerO = undefined;
-        if (!this.playerX && !this.playerO) {
-            this.resetGameState();
-        }
-        return Object.assign(Object.assign({}, player), { status: 'DISCONNECTED' });
+        console.log(this.playerX, this.playerO);
+        this.resetGameState();
+        return Object.assign(Object.assign({}, player), { connected: false });
     }
-    getOtherPLayer(playerName) {
-        const player = this.getPlayerByName(playerName);
+    updatePlayerStatus(userID, status) {
+        const player = [this.playerX, this.playerO].find(player => (player === null || player === void 0 ? void 0 : player.userID) === userID);
+        if (!player)
+            return new types_1.NotAPLayerException("Not a player!");
+        const newStatus = status === 'connected';
+        player.connected = newStatus;
+        return player;
+    }
+    getOtherPlayer(userID) {
+        const player = this.getPlayerByID(userID);
         if (!player) {
             return new types_1.NotAPLayerException("Not a player!");
         }
         if (this.playerX && this.playerO) {
-            return [this.playerX, this.playerO].find(player => (player === null || player === void 0 ? void 0 : player.name) !== playerName);
+            return [this.playerX, this.playerO].find(player => (player === null || player === void 0 ? void 0 : player.userID) !== userID);
         }
         else {
             return undefined;
@@ -73,19 +83,27 @@ class Room {
     }
     getGameState() {
         return {
+            players: {
+                playerX: this.playerX,
+                playerO: this.playerO
+            },
             boardState: this.boardState,
             turn: this.turn,
             winner: this.winner
         };
     }
     resetGameState() {
-        [this.playerX, this.playerO] = [this.playerO, this.playerX];
+        if (this.playerX && this.playerO) {
+            [this.playerX, this.playerO] = [this.playerO, this.playerX];
+            this.playerX.token = 'X';
+            this.playerO.token = 'O';
+        }
         this.boardState = new Array(9).fill(null);
         this.turn = 0;
         this.winner = undefined;
     }
-    changeGameState(playerName, changedTileIndex) {
-        const player = this.getPlayerByName(playerName);
+    changeGameState(userID, changedTileIndex) {
+        const player = this.getPlayerByID(userID);
         if (!player) {
             return new types_1.NotAPLayerException("Not a player!");
         }
@@ -101,7 +119,7 @@ class Room {
         this.boardState[changedTileIndex] = player.token;
         this.turn++;
         this.checkForWinner();
-        return { boardState: this.boardState, turn: this.turn };
+        return this.getGameState();
     }
     checkForWinner() {
         const winningLines = [
@@ -111,10 +129,7 @@ class Room {
         ];
         for (const line of winningLines) {
             const firstElem = this.boardState[line[0]];
-            const checkLine = line.every(index => {
-                return firstElem && this.boardState[index] === firstElem;
-            });
-            console.log("Line:", line, " is ", checkLine);
+            const checkLine = line.every(index => firstElem && this.boardState[index] === firstElem);
             if (checkLine && firstElem) {
                 this.winner = firstElem;
                 return;

@@ -16,20 +16,18 @@ function createNewRoom(newRoomParams) {
     roomsDb_1.default.set(newRoom.name, newRoom);
     return newRoom;
 }
-function changeGameState(roomName, playerName, changedSquereIndex) {
+function changeGameState(roomName, userID, changedSquereIndex) {
     const room = roomsDb_1.default.get(roomName);
     if (!room) {
         return { error: 'Room of provided name does not exist!' };
     }
-    const newState = room.changeGameState(playerName, changedSquereIndex);
+    const newState = room.changeGameState(userID, changedSquereIndex);
     if (newState instanceof Error) {
         return { error: newState.message };
     }
     if (room.winner) {
         return Object.assign({ event: 'GAME_OVER', winner: room.winner }, newState);
-        // return { event: 'GAME_OVER', winner: room.winner, turn: room.turn, boardState: room.boardState } 
     }
-    console.log('room after:', room);
     return newState;
 }
 exports.changeGameState = changeGameState;
@@ -44,25 +42,26 @@ function createRoom(newRoomParams) {
         : { status: 201, newRoomName: newRoom.name };
 }
 exports.createRoom = createRoom;
-function joinRoom(roomName, playerName, password) {
+function joinRoom(roomName, playerID, username, roomPassword) {
     const room = roomsDb_1.default.get(roomName);
     if (!room) {
         return { status: 400, error: 'Room of provided name does not exist!' };
     }
-    const newPlayer = room.addPlayer(playerName, password);
-    if (newPlayer instanceof Error) {
-        return { status: 400, error: newPlayer.message };
-    }
-    const gameState = room.getGameState();
-    return { status: 200, newPlayer, gameState };
+    const newPlayer = room.addPlayer(playerID, username, roomPassword);
+    return newPlayer instanceof Error
+        ? { status: 400, error: newPlayer.message }
+        : { status: 200, newPlayer, gameState: room.getGameState() };
 }
 exports.joinRoom = joinRoom;
-function leaveRoom(roomName, playerName) {
+function leaveRoom(roomName, playerID) {
     const room = roomsDb_1.default.get(roomName);
+    console.log('room', room);
     if (!room) {
+        console.log('Room of provided name does not exist!');
         return { status: 400, error: 'Room of provided name does not exist!' };
     }
-    /* const removedPlayer =  */ room.removePlayer(playerName);
+    const x = room.removePlayer(playerID);
+    console.log(x);
     return { status: 200 };
 }
 exports.leaveRoom = leaveRoom;

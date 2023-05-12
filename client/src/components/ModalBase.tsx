@@ -28,10 +28,7 @@ const ModalBase = function(props: Props) {
   return createPortal(
     <div className={`${props.isVisible ? 'visible' : 'invisible'} z-20 fixed flex top-0 left-0 w-full h-full`}>
         <div className='absolute top-0 left-0 w-full h-full bg-black bg-opacity-75'/>
-        {/* <div className="z-50 relative w-4/5 sm:w-2/5 m-auto">
-          { props.children }
-        </div> */}
-        <div className="z-50 flex w-full h-full m-auto justify-center items-center"> {/* place-items-center */}
+        <div className="z-50 flex w-full h-full m-auto justify-center items-center">
           { props.children }
         </div>
     </div>,

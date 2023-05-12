@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 
-import { useCreateRoomMutation } from '../../globalApi';
+// import { useCreateRoomMutation } from '../../globalApi';
+import { useCreateRoomMutation } from '../../features/room/roomApi'
 
 import ModalBase from '../ModalBase';
 
-const CloseSVG = <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className='fill-white hover:fill-gray-800 w-fit h-fit'><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm4.207 12.793-1.414 1.414L12 13.414l-2.793 2.793-1.414-1.414L10.586 12 7.793 9.207l1.414-1.414L12 10.586l2.793-2.793 1.414 1.414L13.414 12l2.793 2.793z"></path></svg>
+import { closeSvg } from '../../assets/svgs';
 
 type NewRoom = {
     name: string;
@@ -58,7 +59,9 @@ function CreateRoomModal(props: Props) {
             <div className='relative p-4 pt-16 border-2 rounded-md border-gray-600 bg-zinc-900 bg-opacity-80 items-center text-center min-w-[300px] w-8/12 sm:w-3/12'>
 
                 <button className='absolute top-1 right-1 w-8 h-8' onClick={closeAndResetModal}>
-                    { CloseSVG }
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className='m-auto fill-white hover:fill-gray-800 w-fit h-fit'>
+                        { closeSvg }
+                    </svg>
                 </button>
                 
                 <div className='text-center text-5xl'>
@@ -81,8 +84,6 @@ function CreateRoomModal(props: Props) {
                         </> : null
                     }
                 </div>
-
-                {/* { error ? <p className='mt-10 text-red-600'>{ (error as any).error }</p> : null } */}
 
                 <button className='mt-10 w-full p-2 bg-sky-600 rounded-md' onClick={createRoomAndReset}>Create</button>
             

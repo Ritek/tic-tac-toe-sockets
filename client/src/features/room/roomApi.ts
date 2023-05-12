@@ -1,131 +1,111 @@
-import { createApi } from '@reduxjs/toolkit/query/react';
+import { createApi, fakeBaseQuery, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { socket } from '../../socket';
+import { 
+    GameState, 
+    NewRoomParameters, 
+    AvaibleRoom, 
+    Player, 
+    JoinRoomParameters 
+} from '../../types'
 
-type AvaibleRoom = {
-    name: string;
-    isPrivate: boolean;
-    players: 0 | 1 | 2;
-}
-
-type NewRoom = {
-    name: string;
-} & ({
-    isPrivate: false;
-} | {
-    isPrivate: true;
-    password: string;
-});
-
-type NewRoomSuccessResponse = {
+type NewRoomResponseSuccess = {
     status: 201;
-    newRoom: {
-        name: string;
-    }
+    newRoom: { name: string; }
 }
 
-type NewRoomErrorResponse = {
+type NewRoomResponseFailure = {
     status: 409;
-    error: string;
+    data: string;
 }
 
-type NewRoomResponse = NewRoomSuccessResponse | NewRoomErrorResponse;
-type NewRoomMutationResult = {
-    data: NewRoomSuccessResponse;
-} | {
-    error: NewRoomErrorResponse;
-}
+type NewRoomResponse = NewRoomResponseSuccess | NewRoomResponseFailure;
 
-type JoinRoomRequest = {
-    name: string;
-    password?: string;
-}
-
-type JoinRoomResponse = {
+type JoinRoomResponseSuccess = {
     status: 200;
-} | {
-    status: 400;
-    errorMessage: string;
+    newPlayer: Player;
+    gameState: GameState;
 }
-type JoinRoomMutationResult = {
-    data: { status: 200 }
-} | {
-    error: { status: 400, errorMessage: string }
+
+type JoinRoomResponseFailure = {    
+    status: 400;
+    data: string;
+}
+
+type JoinRoomResponse = JoinRoomResponseSuccess | JoinRoomResponseFailure;
+
+type FailureResponse = {
+    status: 400 | 409;
+    data: string;
 }
 
 export const roomApi = createApi({
     reducerPath: 'roomApi',
-    baseQuery: async () => {
-        return { data: [] };
-    },
+    baseQuery: fakeBaseQuery<FailureResponse>(),
+    //baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:5000' }),
     endpoints: (build) => ({
         getRooms: build.query<AvaibleRoom[], void>({
-            query: () => '',
+            // query: () => '/rooms',
+            queryFn: () => ({ data: [] }),
             async onCacheEntryAdded(arg, { updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
                 try {
                     await cacheDataLoaded;
         
                     const listener = (event: AvaibleRoom[]) => {
-                        console.log('event:', event);
+                        console.log('getRooms event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {
-                            draft.length = 0;
-                            /* event.forEach((room, iter) => {
-                                draft[iter] = room;
-                            }); */
-                            draft.push(...event)
+                            return event;
                         });
                     }
 
                     socket.on('all-rooms', (msg) => {
-                        console.log('all-rooms', msg);
                         listener(msg);
                     });
                 } catch {
-                  console.log('roomApi caught error!');
+                  console.log('globalApi -> getRooms caught error!');
                 }
                 await cacheEntryRemoved;
-                socket.off('all-rooms');
             },
         }),
-        createRoom: build.mutation<NewRoomResponse, NewRoom>({
+        createRoom: build.mutation<NewRoomResponseSuccess, NewRoomParameters>({
             queryFn: async (newRoom) => {
-                const newRoomResponse = await new Promise<NewRoomMutationResult>((resolve, reject) => {
-                    socket.emit("create-room", newRoom, (response: NewRoomResponse) => {
-                        if (response.status === 201) {
-                            resolve({data: response});
-                        } else {
-                            resolve({error: response});
-                        }
+                const result = await new Promise<NewRoomResponse>((resolve, reject) => {
+                    socket.emit('create-room', newRoom, (response: NewRoomResponse) => {
+                        resolve(response);
+                    });
+                });
+                
+                return result.status === 201
+                    ? { data: result }
+                    : { error: result };
+            }
+        }),
+        joinRoom: build.mutation<JoinRoomResponseSuccess, JoinRoomParameters>({
+            queryFn: async (roomDetails) => {
+                const result = await new Promise<JoinRoomResponse>((resolve, reject) => {
+                    socket.emit("join-room", roomDetails, (response: JoinRoomResponse) => {
+                        resolve(response);
                     });
                 });
 
-                return newRoomResponse;
-            }
-        }),
-        joinRoom: build.mutation<JoinRoomResponse, JoinRoomRequest>({
-            queryFn: async (roomDetails) => {
-                return await new Promise<JoinRoomMutationResult>((resolve) => {
-                    socket.emit("join-room", roomDetails, (response: JoinRoomResponse) => {
-                        if (response.status === 200) {
-                            resolve({data: response});
-                        } else {
-                            resolve({error: response});
-                        }
-                    });
-                });
-            }
+                return result.status === 200 
+                    ? { data: result } 
+                    : { error: result };
+            },
         }),
         leaveRoom: build.mutation<unknown, void>({
-            query: () => {
+            queryFn: () => {
                 socket.emit('leave-room');
+                return { data: null }
             }
         })
-        
-    }),
+    })
 });
 
 export const { 
-    useGetRoomsQuery, useCreateRoomMutation, 
-    useJoinRoomMutation, useLeaveRoomMutation 
+    useGetRoomsQuery, 
+    useCreateRoomMutation, 
+    useJoinRoomMutation, 
+    useLeaveRoomMutation
 } = roomApi;

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 
-import { useGetMessagesQuery, useSendMessageMutation } from '../globalApi';
+// import { useGetMessagesQuery, useSendMessageMutation } from '../../globalApi';
+import { useGetMessagesQuery, useSendMessageMutation } from '../../features/chat/chatApi';
 
 const Chat = function() {
   // console.log('Chat rerendered!');

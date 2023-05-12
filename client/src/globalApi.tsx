@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { socket } from './socket';
-import { ChatMessage, GameState, NewRoomParameters, AvaibleRoom, Player, JoinRoomParams } from './types'
+import { ChatMessage, GameState, NewRoomParameters, AvaibleRoom, Player, JoinRoomParameters } from './types';
 
 type NewRoomResponseSuccess = {
     status: 201;
@@ -26,7 +26,7 @@ type JoinRoomResponseSuccess = {
 
 type JoinRoomResponseFailure = {    
     status: 400;
-    errorMessage: string;
+    data: string;
 }
 
 type JoinRoomResponse = JoinRoomResponseSuccess | JoinRoomResponseFailure;
@@ -59,7 +59,7 @@ export const globalApi = createApi({
         console.log('baseQuery');
         return { data: [] };
     },
-    tagTypes: ['session'],
+    tagTypes: ['session', 'game-state', 'rematch'],
     endpoints: (build) => ({
         // Session API
         getSession: build.query<Session | undefined, void>({
@@ -70,7 +70,6 @@ export const globalApi = createApi({
                     await cacheDataLoaded;
         
                     const listener = (event: Session) => {
-                        console.log('event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {
@@ -78,16 +77,14 @@ export const globalApi = createApi({
                             return event;
                         });
                     }
-        
+                    
                     socket.on('session', (msg) => {
-                        console.log('session', msg);
                         listener(msg);
                     });
                 } catch {
                   console.log('globalApi -> getSession caught error!');
                 }
                 await cacheEntryRemoved;
-                socket.off('session');
             },
         }),
         deleteSession: build.mutation<unknown, string>({
@@ -122,10 +119,9 @@ export const globalApi = createApi({
                 } catch {
                   // no-op in case `cacheEntryRemoved` resolves before `cacheDataLoaded`,
                   // in which case `cacheDataLoaded` will throw
-                  console.log('chatApi caught error!');
+                  console.log('globalApi -> getMessages caught error!');
                 }
                 await cacheEntryRemoved;
-                socket.off('chat-message');
             },
         }),
         sendMessage: build.mutation<unknown, string>({
@@ -135,9 +131,54 @@ export const globalApi = createApi({
             }
         }),
 
+        // Rematch API
+        getRematchRequest: build.query<string, void>({
+            queryFn: () => ({ data: '' }),
+            providesTags: ['rematch'],
+            async onCacheEntryAdded(arg, { updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
+                try {
+                    await cacheDataLoaded;
+        
+                    const listener = (event: string) => {
+                        console.log('before event', event);
+                        if (!event) return;
+                        console.log('after event');
+            
+                        updateCachedData((draft) => {
+                            console.log(draft);
+                            return 'Oponent requested rematch';
+                        });
+                    }
+        
+                    socket.on('confirm-rematch', (msg) => {
+                        console.log('globalAPI confirm-rematch', msg);
+                        listener(msg);
+                    });
+                } catch {
+                  console.log('globalApi -> getRematchRequest caught error!');
+                }
+                await cacheEntryRemoved;
+            },
+        }),
+        requestRematch: build.mutation<unknown, void>({
+            queryFn: () => {
+                socket.emit('rematch-request');
+                return { data: null };
+            },
+            // invalidatesTags: (result, error, arg) => [{ type: 'rematch' }],
+        }),
+        confirmRematch: build.mutation<unknown, void>({
+            queryFn: () => {
+                socket.emit('rematch-approved');
+                return { data: null };
+            },
+            invalidatesTags: (result, error, arg) => [{ type: 'rematch' }],
+        }),
+
         // Board API
-        getNewGameState: build.query<GameState, void>({
-            queryFn: () => ({ data: {event: 'move-made', turn: 0, boardState: new Array(9).fill(null)} }),
+        getNewGameState: build.query<GameState | undefined, void>({
+            queryFn: () => ({ data: undefined }),
+            providesTags: ['game-state'],
             async onCacheEntryAdded(arg, { updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
                 try {
                     await cacheDataLoaded;
@@ -148,6 +189,7 @@ export const globalApi = createApi({
                         if (!event) return;
             
                         updateCachedData((draft) => {
+                            console.log(event);
                             return event;
                         });
                     }
@@ -156,7 +198,7 @@ export const globalApi = createApi({
                         listener(msg);
                     });
                 } catch {
-                  console.log('getNewGameState caught error!');
+                  console.log('globalApi -> getNewGameState caught error!');
                 }
                 await cacheEntryRemoved;
             },
@@ -188,11 +230,10 @@ export const globalApi = createApi({
                     }
 
                     socket.on('all-rooms', (msg) => {
-                        console.log('all-rooms', msg);
                         listener(msg);
                     });
                 } catch {
-                  console.log('getRooms caught error!');
+                  console.log('globalApi -> getRooms caught error!');
                 }
                 await cacheEntryRemoved;
             },
@@ -201,29 +242,25 @@ export const globalApi = createApi({
             queryFn: async (newRoom) => {
                 const temp = await new Promise<NewRoomMutationResult<NewRoomResponse>>((resolve, reject) => {
                     socket.emit("create-room", newRoom, (response: NewRoomResponse) => {
-                        if (response.status === 201) {
-                            resolve({data: response});
-                        } else {
-                            resolve({error: response});
-                        }
+                        response.status === 201
+                            ? resolve({data: response})
+                            : resolve({error: response});
                     });
                 });
-                console.log(temp);
                 return temp;
             }
         }),
-        joinRoom: build.mutation<JoinRoomResponse, JoinRoomParams>({
+        joinRoom: build.mutation<JoinRoomResponse, JoinRoomParameters>({
             queryFn: async (roomDetails) => {
                 return await new Promise<JoinRoomMutationResult<JoinRoomResponse>>((resolve) => {
                     socket.emit("join-room", roomDetails, (response: JoinRoomResponse) => {
-                        if (response.status === 200) {
-                            resolve({data: response});
-                        } else {
-                            resolve({error: response});
-                        }
+                        response.status === 200
+                            ? resolve({data: response})
+                            : resolve({error: response});
                     });
                 });
-            }
+            },
+            invalidatesTags: (result, error, arg) => [{ type: 'game-state' }],
         }),
         leaveRoom: build.mutation<unknown, void>({
             queryFn: () => {
@@ -240,6 +277,10 @@ export const {
 
     useGetMessagesQuery, 
     useSendMessageMutation, 
+
+    useGetRematchRequestQuery,
+    useRequestRematchMutation,
+    useConfirmRematchMutation,
 
     useGetNewGameStateQuery, 
     useMakeMoveMutation, 

@@ -1,48 +1,45 @@
-import { createApi } from '@reduxjs/toolkit/query/react';
+import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 import { socket } from '../../socket';
-
-type BoardState = ('X' | 'O' | null)[];
+import { GameState } from '../../types'
 
 export const gameApi = createApi({
     reducerPath: 'gameApi',
-    baseQuery: async () => {
-        console.log('baseQuery');
-        return { data: new Array(9).fill(null) };
-    },
+    baseQuery: fakeBaseQuery(),
+    tagTypes: ['game-state'],
     endpoints: (build) => ({
-        getNewGameState: build.query<BoardState, void>({
-            query: () => '',
+        getNewGameState: build.query<GameState | undefined, void>({
+            queryFn: () => ({ data: undefined }),
+            providesTags: ['game-state'],
             async onCacheEntryAdded(arg, { updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
                 try {
                     await cacheDataLoaded;
         
-                    const listener = (event: {event: string, turn: number, gameState: []}) => {
+                    const listener = (event: GameState) => {
+
                         console.log('event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {
-                            event.gameState.forEach((state, index) => {
-                                draft[index] !== state ? draft[index] = state : draft[index]
-                            })
+                            console.log(event);
+                            return event;
                         });
                     }
         
-                    socket.on('move-made', (msg) => {
-                        console.log('move-made', msg);
+                    socket.on('game-state', (msg) => {
                         listener(msg);
                     });
                 } catch {
-                  console.log('gameApi caught error!');
+                  console.log('globalApi -> getNewGameState caught error!');
                 }
                 await cacheEntryRemoved;
-                socket.off('move-made');
             },
         }),
         makeMove: build.mutation<unknown, number>({
-            query: (changedSquereIndex) => {
-                socket.emit('move-made', { event: 'MOVE', changedSquereIndex })
+            queryFn: (changedSquereIndex) => {
+                socket.emit('new-move', { event: 'MOVE', changedSquereIndex });
+                return { data: null };
             }
-        })
+        }),
     }),
 });
 

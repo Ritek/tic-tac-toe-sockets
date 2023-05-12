@@ -1,25 +1,36 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import { socket } from '../../socket';
 
-import { useGetRoomsQuery, useCreateRoomMutation, 
-    useJoinRoomMutation, useLeaveRoomMutation } from '../../globalApi';
-
+import { 
+    useGetRoomsQuery, 
+    useLeaveRoomMutation, 
+    useJoinRoomMutation, 
+    useCreateRoomMutation 
+} from '../../features/room/roomApi';
 import RoomTableRow from './RoomTableRow';
-import JoinRoomModal from './JoinRoomModal';
-import CreateRoomModal from './CreateRoomModal';
+
+import Spinner from '../../assets/Spinner';
+
+import CreateRoomModal from '../Modals/CreateRoomModal';
+import JoinRoomModal from '../Modals/JoinRoomModal';
+
+import { NewRoomParameters, JoinRoomParameters } from '../../types';
 
 function HomeScreen() {
-    // console.log('Rendered HomeScreen');
+    const navigate = useNavigate();
+
     const { data: rooms } = useGetRoomsQuery();
-    // const [ createRoom, { error: createRoomError } ] = useCreateRoomMutation();
-    // const [ joinRoom, { error: joinRoomError } ] = useJoinRoomMutation();
+    const [ joinRoom ] = useJoinRoomMutation();
     const [ leaveRoom ] = useLeaveRoomMutation();
+    const [ createRoom ] = useCreateRoomMutation();
 
     const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
     const [showNewRoomModal, setShowNewRoomModal] = useState(false);
     const selectedRoomName = useRef({ name: "", isPrivate: false });
 
     useEffect(() => { 
+        console.log('rerendered HomeScreen!');
         leaveRoom();
         return () => {
             console.log('Unmounted HomeScreen');
@@ -32,23 +43,48 @@ function HomeScreen() {
         setShowJoinRoomModal(true);
     }
 
+    function joinRoomHandler(roomParameters: JoinRoomParameters) {
+        joinRoom(roomParameters).unwrap().then(result => {
+            console.log(result);
+            setShowJoinRoomModal(false);
+            navigate(`/${roomParameters.name}`);
+        }).catch(error => {
+            console.log('joinRoom error:', error);
+        });
+    }
+
+    function createRoomHandler(newRoomParams: NewRoomParameters) {
+        console.log('createRoomHandler', newRoomParams);
+
+        createRoom(newRoomParams).unwrap().then((result: any) => {
+            console.log(result);
+            setShowNewRoomModal(false);
+        }).catch(error => {
+            console.log(error);
+        });
+    }
+
     return (
         <div className='pt-4 sm:p-8 mb-28 mx-auto md:m-0 w-10/12 sm:w-1/2 sm:min-w-[500px]'>
 
             <JoinRoomModal
-                isPrivate={selectedRoomName.current.isPrivate} 
-                roomName={selectedRoomName.current.name} 
                 isVisible={showJoinRoomModal} 
-                closeModal={() => setShowJoinRoomModal(false)} 
+                close={() => setShowJoinRoomModal(false)} 
+                submit={joinRoomHandler}
+                selectedRoomName={selectedRoomName.current.name}
+                isPrivate={selectedRoomName.current.isPrivate}
             />
 
             <CreateRoomModal
                 isVisible={showNewRoomModal}
-                closeModal={() => setShowNewRoomModal(false)}
+                close={() => setShowNewRoomModal(false)}
+                submit={createRoomHandler}
             />
 
             <h1 className='text-6xl mb-4'>Available rooms</h1>
             <h2 className='text-4xl mb-12'>Click a row to join a room</h2>
+
+            <Spinner svgClassName='' circleClassName='' pathClassName='fill-sky-600'/>
 
             <table className='w-full table-auto text-xl text-left'>
                 <thead>
@@ -60,7 +96,9 @@ function HomeScreen() {
                 </thead>
                 <tbody>
                     {
-                        rooms?.map((room, iter) => (
+                        !rooms || rooms.length === 0
+                            ? <tr><td colSpan={3}><Spinner svgClassName='' circleClassName='' pathClassName='fill-sky-600'/></td></tr>
+                            : rooms.map((room, iter) => (
                             <RoomTableRow key={iter} room={room} rowClick={openJoinRoomModal} />
                         ))
                     }
@@ -69,7 +107,7 @@ function HomeScreen() {
 
             <button className='sticky bottom-0 p-4 text-2xl w-full rounded-none bg-sky-600' 
                     onClick={() => setShowNewRoomModal(true)}>
-                Create
+                Create a room
             </button>
         </div>
     );

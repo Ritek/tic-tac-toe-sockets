@@ -16,12 +16,17 @@ interface ServerToClientEvents {
     'all-rooms':        (arg: RoomInformation[]) => void;
     'chat-message':     (arg: ChatMessage) => void;
     'move-made':        (arg: GameState | {error: string}) => void;
+    'game-state':       (arg: GameState | {error: string}) => void;
+    'confirm-rematch':  (arg: string) => void;
 }
   
 interface ClientToServerEvents {
     'delete-session':   (sessionID: string) => void;
     'chat-message':     (newChatMessage: ChatMessage) => void;
     'move-made':        (newMove: Move) => void;
+    'new-move':         (newMove: Move) => void;
+    'rematch-request':  () => void;
+    'rematch-approved': () => void;
     'create-room':      (roomDetails: NewRoom, callback: (arg: any) => void) => void;
     'join-room':        (roomInfo: JoinRoom, callback: (arg: any) => void) => void;
     'leave-room':       () => void;
@@ -36,6 +41,12 @@ app.get('/', (req, res) => {
   res.status(200).send([]);
 });
 
+/* app.get('/rooms', (req, res) => {
+    console.log('/rooms');
+    const temp = Array.from(rooms, room => room[1].getRoomInfo());
+    res.status(200).send(temp);
+}); */
+
 const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
@@ -45,13 +56,13 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 const sessionStore: SessionStore = new InMemorySessionStore();
 
 setInterval(function() {
-    console.log('all-rooms', Array.from(rooms, room => room[1].getRoomInfo()));
-    console.log('session', sessionStore.findAllSessions());
+    // console.log('all-rooms', Array.from(rooms, room => room[1].getRoomInfo()));
+    // console.log('session', sessionStore.findAllSessions());
     io.emit('all-rooms', Array.from(rooms, room => room[1].getRoomInfo()));
 }, 5000);
 
 function getUserGameRoomName(userRooms: Set<string>) {
-    return [...userRooms.values()].at(1);
+    return [...userRooms.values()].at(2);
 }
 
 function hasErrorField(obj: Object): boolean {
@@ -76,7 +87,6 @@ io.use((socket, next) => {
     }
     const username = socket.handshake.auth.username;
     if (!username) {
-        console.log("Username missing!");
         return next(new Error("Username missing!"));
     }
     // create new session
@@ -87,6 +97,7 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
+    socket.join(socket.data.userID);
     sessionStore.saveSession(socket.data.sessionID, {
         userID: socket.data.userID,
         username: socket.data.username,
@@ -100,15 +111,25 @@ io.on("connection", (socket) => {
     });
 
     socket.on('delete-session', (sessionID) => {
+        console.log('delete-session', sessionID)
+
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName) return;
+
+        const removedPlayer = leaveRoom(userRoomName, socket.data.userID);
+        if (!hasErrorField(removedPlayer)) {
+            socket.leave(userRoomName);
+        }
+
         sessionStore.deleteSession(sessionID);
     });
 
     socket.on('chat-message', (newChatMessage: ChatMessage) => {
-        const usersRoomName = getUserGameRoomName(socket.rooms);
-        if (!usersRoomName) return;
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName) return;
 
-        io.in(usersRoomName).emit('chat-message', {
-            author: socket.id, message: newChatMessage.message
+        io.in(userRoomName).emit('chat-message', {
+            author: socket.data.username, message: newChatMessage.message
         });
     });
   
@@ -116,22 +137,63 @@ io.on("connection", (socket) => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName) return;
 
-        const result = changeGameState(userRoomName, socket.id, newMove.changedSquereIndex);
+        const result = changeGameState(userRoomName, socket.data.userID, newMove.changedSquereIndex);
         if (hasErrorField(result)) return;
 
         return io.in(userRoomName).emit('move-made', result);
     });
+
+    socket.on('new-move', (newMove: Move) => {
+        console.log('new-move', newMove);
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName) return;
+
+        const result = changeGameState(userRoomName, socket.data.userID, newMove.changedSquereIndex);
+        if (hasErrorField(result)) return;
+
+        return io.in(userRoomName).emit('game-state', result);
+    });
+
+    socket.on('rematch-request', () => {
+        console.log('rematch-request');
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName) return;
+
+        const room = rooms.get(userRoomName);
+        if (!room) return;
+
+        const otherPlayer = room.getOtherPlayer(socket.data.userID);
+        if (!otherPlayer || otherPlayer instanceof Error) return;
+
+        io.to(otherPlayer.userID).emit('confirm-rematch', 
+            `Your oponent requests rematch`
+        );
+    });
+
+    socket.on('rematch-approved', () => {
+        console.log('rematch-approved');
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName) return;
+
+        const room = rooms.get(userRoomName);
+        if (!room) return;
+
+        room.resetGameState();
+        return io.in(userRoomName).emit('game-state', room.getGameState());
+    });
   
-    socket.on("create-room", (roomDetails: NewRoom, callback) => {
-        console.log(roomDetails);
+    socket.on('create-room', (roomDetails: NewRoom, callback) => {
+        console.log('create-room', roomDetails);
         const newRoom = createRoom(roomDetails);
 
         return callback(newRoom);
     });
   
     socket.on("join-room", (roomInfo: JoinRoom, callback) => {
-        console.log(roomInfo);
-        const newPlayerAndGameState = joinRoom(roomInfo.name, socket.id, roomInfo.password);
+        console.log('join-room', roomInfo);
+        const newPlayerAndGameState = joinRoom(
+            roomInfo.name, socket.data.userID, socket.data.username, roomInfo.password
+        );
 
         if (!hasErrorField(newPlayerAndGameState)) {
             socket.join(roomInfo.name);
@@ -141,10 +203,11 @@ io.on("connection", (socket) => {
     });
   
     socket.on('leave-room', () => {
+        console.log('leave-room');
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName) return;
 
-        const removedPlayer = leaveRoom(userRoomName, socket.id);
+        const removedPlayer = leaveRoom(userRoomName, socket.data.userID);
         if (!hasErrorField(removedPlayer)) {
             socket.leave(userRoomName);
         }
@@ -152,13 +215,15 @@ io.on("connection", (socket) => {
   
     // runs before disconnect
     socket.on('disconnecting', () => {
-        const userRoomName = getUserGameRoomName(socket.rooms);
-        if (!userRoomName) return;
+        console.log('disconnecting');
 
-        const removedPlayer = leaveRoom(userRoomName, socket.id);
-        if (!hasErrorField(removedPlayer)) {
-            socket.leave(userRoomName);
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (userRoomName) {
+            const room = rooms.get(userRoomName);
+            room?.removePlayer(socket.data.userID);
         }
+
+        sessionStore.disconnectUser(socket.data.userID);
     });
 
 });

@@ -6,6 +6,7 @@ const O = <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className=
 type Props = {
   value: 'X' | 'O' | null;
   index: number;
+  disabled: boolean,
   handleClick: (index: number) => void;
 }
 
@@ -16,10 +17,9 @@ function showChar(value: Props["value"]) {
 }
 
 function Square(props: Props) {
-  // console.log(`Squere of index ${props.index} was rerendered!`);
   return (
     <button 
-      // className='w-auto block rounded-none box-border aspect-square mb-1 font-bold'
+      disabled={props.disabled}
       className='w-auto block rounded-none box-border aspect-square mb-1 font-bold  border-solid border-[1px] border-black p-0.5 bg-[#1a1a1a]'
       onClick={() => props.handleClick(props.index)}
     >
@@ -28,4 +28,4 @@ function Square(props: Props) {
   )
 }
 
-export default Square
+export default Square;

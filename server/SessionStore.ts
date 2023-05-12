@@ -9,6 +9,7 @@ export abstract class SessionStore {
   abstract saveSession(id: string, session: Session): void;
   abstract findAllSessions(): Session[];
   abstract deleteSession(id: string): void;
+  abstract disconnectUser(id: string): void;
 }
 
 export default class InMemorySessionStore extends SessionStore {
@@ -29,6 +30,13 @@ export default class InMemorySessionStore extends SessionStore {
 
   findAllSessions() {
     return [...this.sessions.values()];
+  }
+
+  disconnectUser(id: string) {
+    const found = this.sessions.get(id);
+    if (found) {
+      this.sessions.set(id, {...found, connected: false});
+    }
   }
 
   deleteSession(id: string) {

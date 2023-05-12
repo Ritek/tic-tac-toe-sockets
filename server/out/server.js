@@ -17,6 +17,11 @@ app.use((0, cors_1.default)());
 app.get('/', (req, res) => {
     res.status(200).send([]);
 });
+/* app.get('/rooms', (req, res) => {
+    console.log('/rooms');
+    const temp = Array.from(rooms, room => room[1].getRoomInfo());
+    res.status(200).send(temp);
+}); */
 const httpServer = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(httpServer, {
     cors: {
@@ -25,12 +30,12 @@ const io = new socket_io_1.Server(httpServer, {
 });
 const sessionStore = new SessionStore_1.default();
 setInterval(function () {
-    console.log('all-rooms', Array.from(roomsDb_1.default, room => room[1].getRoomInfo()));
-    console.log('session', sessionStore.findAllSessions());
+    // console.log('all-rooms', Array.from(rooms, room => room[1].getRoomInfo()));
+    // console.log('session', sessionStore.findAllSessions());
     io.emit('all-rooms', Array.from(roomsDb_1.default, room => room[1].getRoomInfo()));
 }, 5000);
 function getUserGameRoomName(userRooms) {
-    return [...userRooms.values()].at(1);
+    return [...userRooms.values()].at(2);
 }
 function hasErrorField(obj) {
     return 'error' in obj;
@@ -52,7 +57,6 @@ io.use((socket, next) => {
     }
     const username = socket.handshake.auth.username;
     if (!username) {
-        console.log("Username missing!");
         return next(new Error("Username missing!"));
     }
     // create new session
@@ -62,6 +66,7 @@ io.use((socket, next) => {
     next();
 });
 io.on("connection", (socket) => {
+    socket.join(socket.data.userID);
     sessionStore.saveSession(socket.data.sessionID, {
         userID: socket.data.userID,
         username: socket.data.username,
@@ -73,56 +78,99 @@ io.on("connection", (socket) => {
         username: socket.data.username
     });
     socket.on('delete-session', (sessionID) => {
+        console.log('delete-session', sessionID);
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName)
+            return;
+        const removedPlayer = (0, connectionService_1.leaveRoom)(userRoomName, socket.data.userID);
+        if (!hasErrorField(removedPlayer)) {
+            socket.leave(userRoomName);
+        }
         sessionStore.deleteSession(sessionID);
     });
     socket.on('chat-message', (newChatMessage) => {
-        const usersRoomName = getUserGameRoomName(socket.rooms);
-        if (!usersRoomName)
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName)
             return;
-        io.in(usersRoomName).emit('chat-message', {
-            author: socket.id, message: newChatMessage.message
+        io.in(userRoomName).emit('chat-message', {
+            author: socket.data.username, message: newChatMessage.message
         });
     });
     socket.on('move-made', (newMove) => {
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName)
             return;
-        const result = (0, connectionService_1.changeGameState)(userRoomName, socket.id, newMove.changedSquereIndex);
+        const result = (0, connectionService_1.changeGameState)(userRoomName, socket.data.userID, newMove.changedSquereIndex);
         if (hasErrorField(result))
             return;
         return io.in(userRoomName).emit('move-made', result);
     });
-    socket.on("create-room", (roomDetails, callback) => {
-        console.log(roomDetails);
+    socket.on('new-move', (newMove) => {
+        console.log('new-move', newMove);
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName)
+            return;
+        const result = (0, connectionService_1.changeGameState)(userRoomName, socket.data.userID, newMove.changedSquereIndex);
+        if (hasErrorField(result))
+            return;
+        return io.in(userRoomName).emit('game-state', result);
+    });
+    socket.on('rematch-request', () => {
+        console.log('rematch-request');
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName)
+            return;
+        const room = roomsDb_1.default.get(userRoomName);
+        if (!room)
+            return;
+        const otherPlayer = room.getOtherPlayer(socket.data.userID);
+        if (!otherPlayer || otherPlayer instanceof Error)
+            return;
+        io.to(otherPlayer.userID).emit('confirm-rematch', `Your oponent requests rematch`);
+    });
+    socket.on('rematch-approved', () => {
+        console.log('rematch-approved');
+        const userRoomName = getUserGameRoomName(socket.rooms);
+        if (!userRoomName)
+            return;
+        const room = roomsDb_1.default.get(userRoomName);
+        if (!room)
+            return;
+        room.resetGameState();
+        return io.in(userRoomName).emit('game-state', room.getGameState());
+    });
+    socket.on('create-room', (roomDetails, callback) => {
+        console.log('create-room', roomDetails);
         const newRoom = (0, connectionService_1.createRoom)(roomDetails);
         return callback(newRoom);
     });
     socket.on("join-room", (roomInfo, callback) => {
-        console.log(roomInfo);
-        const newPlayerAndGameState = (0, connectionService_1.joinRoom)(roomInfo.name, socket.id, roomInfo.password);
+        console.log('join-room', roomInfo);
+        const newPlayerAndGameState = (0, connectionService_1.joinRoom)(roomInfo.name, socket.data.userID, socket.data.username, roomInfo.password);
         if (!hasErrorField(newPlayerAndGameState)) {
             socket.join(roomInfo.name);
         }
         return callback(newPlayerAndGameState);
     });
     socket.on('leave-room', () => {
+        console.log('leave-room');
         const userRoomName = getUserGameRoomName(socket.rooms);
         if (!userRoomName)
             return;
-        const removedPlayer = (0, connectionService_1.leaveRoom)(userRoomName, socket.id);
+        const removedPlayer = (0, connectionService_1.leaveRoom)(userRoomName, socket.data.userID);
         if (!hasErrorField(removedPlayer)) {
             socket.leave(userRoomName);
         }
     });
     // runs before disconnect
     socket.on('disconnecting', () => {
+        console.log('disconnecting');
         const userRoomName = getUserGameRoomName(socket.rooms);
-        if (!userRoomName)
-            return;
-        const removedPlayer = (0, connectionService_1.leaveRoom)(userRoomName, socket.id);
-        if (!hasErrorField(removedPlayer)) {
-            socket.leave(userRoomName);
+        if (userRoomName) {
+            const room = roomsDb_1.default.get(userRoomName);
+            room === null || room === void 0 ? void 0 : room.removePlayer(socket.data.userID);
         }
+        sessionStore.disconnectUser(socket.data.userID);
     });
 });
 httpServer.listen(PORT, () => {

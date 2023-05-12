@@ -5,13 +5,12 @@ import { store } from './store';
 
 import './index.css';
 
-import Game from './Game'
+import App from './App';
+import Game from './components/Game/Game'
 import HomeScreen from './components/HomeScreen/HomeScreen';
 import ErrorPage from './components/ErrorPage';
-import SessionStatus from './components/SessionStatus';
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import App from './App';
 
 const sessionID = localStorage.getItem("sessionID");
 
@@ -24,6 +23,7 @@ const router = createBrowserRouter([
   {
     path: '/:id',
     element: <Game />,
+    errorElement: <ErrorPage />,
   }
 ]);
 

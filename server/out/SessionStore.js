@@ -18,6 +18,12 @@ class InMemorySessionStore extends SessionStore {
     findAllSessions() {
         return [...this.sessions.values()];
     }
+    disconnectUser(id) {
+        const found = this.sessions.get(id);
+        if (found) {
+            this.sessions.set(id, Object.assign(Object.assign({}, found), { connected: false }));
+        }
+    }
     deleteSession(id) {
         this.sessions.delete(id);
     }

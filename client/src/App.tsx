@@ -3,52 +3,51 @@ import { socket } from './socket';
 import SessionStatus from './components/SessionStatus';
 import UsernameModal from './components/UsernameModal';
 
-import { useGetSessionQuery } from './globalApi';
+// import { useGetSessionQuery } from './globalApi';
+import { useGetSessionQuery } from './features/session/sessionApi';
 
 type Props = {
     sessionID: string | null;
     children: React.ReactNode;
 }
 
-type SessionPayload = {
-    sessionID: string
-} | {
-    username: string
-}
+type SessionPayload = { sessionID: string } 
+                    | { username: string }
 
 function App(props: Props) {
     const { data: session } = useGetSessionQuery();
     const [showUsernameModal, setShowUsernameModal] = useState<boolean>(!session?.sessionID);
 
     useEffect(() => {
-        if (!session) {
-            setShowUsernameModal(true);
-        } else {
-            setShowUsernameModal(false);
-        }
-    }, [session]);
+        if (props.sessionID) {
+            connectToServer({sessionID: props.sessionID});
+        }    
+    }, []);
 
-    if (props.sessionID) {
-        getSession({sessionID: props.sessionID});
-    }
+    useEffect(() => {
+        !session 
+            ? setShowUsernameModal(true)
+            : setShowUsernameModal(false);
+    }, [session]);
 
     function closeModal(username: string) {
         setShowUsernameModal(false);
-        getSession({username});
+        connectToServer({username});
     }
 
-    function getSession(payload: SessionPayload) {
-        console.log('payload:', { ...payload });
+    function connectToServer(payload: SessionPayload) {
         socket.auth = { ...payload };
         socket.connect();
     }
 
     return (
-        <div className='px-4'>
+        <>
             <UsernameModal isVisible={showUsernameModal} closeModal={closeModal} />
-            <SessionStatus />
-            { props.children }
-        </div>
+            <div className='px-4'>
+                <SessionStatus />
+                { session ? props.children : null }
+            </div>
+        </>
     );
 }
 

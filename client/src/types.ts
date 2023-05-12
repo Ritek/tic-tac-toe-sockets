@@ -3,7 +3,13 @@ export type ChatMessage = {
     message: string;
 }
 
+export type PlayerToken = 'X' | 'O';
+
 export type GameState = {
+    players: {
+        playerX: Player | undefined,
+        playerO: Player | undefined
+    }
     event: string;
     winner?: string | undefined;
     turn: number;
@@ -40,13 +46,14 @@ export type NewRoomParameters = {
     password: string;
 });
 
-export type JoinRoomParams = {
+export type JoinRoomParameters = {
     name: string;
     password?: string;
 }
 
 export type Player = {
     token: 'X' | 'O';
-    name: string;
-    status: string;
+    userID: string;
+    username: string;
+    connected: boolean;
 }
