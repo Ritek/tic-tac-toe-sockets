@@ -26,8 +26,10 @@ import {
 
 import Board from './Board';
 import Chat from './Chat';
-import WinnerModal from './WinnerModal';
-import RematchModal from './RematchModal';
+// import WinnerModal from './WinnerModal';
+// import RematchModal from './RematchModal';
+import WinnerModal from '../Modals/WinnerModal';
+import RematchModal from '../Modals/RematchModal';
 
 function Game() {
   const location = useLocation();
@@ -86,17 +88,16 @@ function Game() {
     <div className="p-8 mb-28">
       <button className="p-2 bg-sky-500 hover:bg-sky-600 rounded-md" onClick={() => setShowWinnerModal(true)}>Show winner</button>
       <WinnerModal 
-        closeModal={() => setShowWinnerModal(false)} 
+        close={() => setShowWinnerModal(false)} 
         isVisible={showWinnerModal} 
-        winner={gameState?.winner} 
-        hideAfter={3000}
+        winner={gameState?.winner!} 
       />
 
       <button className="p-2 bg-sky-500 hover:bg-sky-600 rounded-md" onClick={() => setShowRematchModal(true)}>Show rematch</button>
       <RematchModal
-        closeModal={() => setShowRematchModal(false)}
-        choiceHandler={rematchHandler}
+        close={() => setShowRematchModal(false)}
         isVisible={showRematchModal}
+        submit={(rematch) => rematchHandler(rematch)}
       />
 
       <button className='p-2 bg-sky-500 hover:bg-sky-600 rounded-md' 

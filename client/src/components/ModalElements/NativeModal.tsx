@@ -15,6 +15,7 @@ type Props = {
   isVisible: boolean;
   close: () => void;
   children?: ReactNode;
+  hideAfter?: number;
   className?: string;
 }
 
@@ -28,9 +29,19 @@ function NativeModal(props: Props) {
   }, []);
 
   useEffect(() => {
+    // const hideTimeout = setTimeout(
+    //   () => props.close(),
+    //   props.hideAfter
+    // );
+
     props.isVisible
-        ? dialogRef.current?.showModal()
-        : dialogRef.current?.close()
+      ? dialogRef.current?.showModal()
+      : dialogRef.current?.close()
+
+    // return () => {
+    //   clearTimeout(hideTimeout);
+    //   hideTimeout;
+    // }
   }, [props.isVisible]);
 
   return (

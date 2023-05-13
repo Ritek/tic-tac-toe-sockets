@@ -13,7 +13,7 @@ function ModalSvg(props: Props) {
         width={props.width || "70"} 
         height={props.height || "70"} 
         viewBox="0 0 24 24" 
-        className={`fill-white m-auto ${props.className}`}
+        className={`m-auto ${props.className}`}
       >
       {props.children}
     </svg>

@@ -29,7 +29,7 @@ function CreateRoomModal(props: Props) {
   return (
     <NativeModal className="w-2/3 sm:1/4 md:w-1/4" isVisible={props.isVisible} close={props.close}>
       <NativeModal.CloseButton clickHandler={props.close}>{ closeSvg }</NativeModal.CloseButton>
-      <NativeModal.SVG height='100' width='100' className='mb-4'>{ createSvg }</NativeModal.SVG>
+      <NativeModal.SVG height='100' width='100' className='mb-4 fill-white'>{ createSvg }</NativeModal.SVG>
       <NativeModal.Title className='mb-2'>Create room</NativeModal.Title>
       <NativeModal.Text className='mb-4'>
           Please provide room name and password if necessery

@@ -36,10 +36,9 @@ function JoinRoomModal(props: Props) {
   return (
     <NativeModal className="w-2/3 sm:1/4 md:w-1/4" isVisible={props.isVisible} close={props.close}>
       <NativeModal.CloseButton clickHandler={props.close}>{ closeSvg }</NativeModal.CloseButton>
-      {props.isPrivate  
-        ? <NativeModal.SVG height='100' width='100' className='mb-4'>{ lockSvg }</NativeModal.SVG>
-        : <NativeModal.SVG height='100' width='100' className='mb-4'>{ joinSvg }</NativeModal.SVG>
-      }
+      <NativeModal.SVG height='100' width='100' className='mb-4 fill-white'>
+        { props.isPrivate ? lockSvg : joinSvg }
+      </NativeModal.SVG>
       <NativeModal.Text>You are about join room</NativeModal.Text>
       <NativeModal.Text className='mb-4'>
         <b>"{ props.selectedRoomName }"</b>

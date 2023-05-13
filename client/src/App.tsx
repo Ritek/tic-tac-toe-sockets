@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { socket } from './socket';
 import SessionStatus from './components/SessionStatus';
-import UsernameModal from './components/UsernameModal';
+// import UsernameModal from './components/UsernameModal';
+import UsernameModal from './components/Modals/UsernameModal';
 
 // import { useGetSessionQuery } from './globalApi';
 import { useGetSessionQuery } from './features/session/sessionApi';
@@ -30,11 +31,6 @@ function App(props: Props) {
             : setShowUsernameModal(false);
     }, [session]);
 
-    function closeModal(username: string) {
-        setShowUsernameModal(false);
-        connectToServer({username});
-    }
-
     function connectToServer(payload: SessionPayload) {
         socket.auth = { ...payload };
         socket.connect();
@@ -42,7 +38,11 @@ function App(props: Props) {
 
     return (
         <>
-            <UsernameModal isVisible={showUsernameModal} closeModal={closeModal} />
+            <UsernameModal 
+                isVisible={showUsernameModal} 
+                close={() => setShowUsernameModal(false)} 
+                submit={(username) => connectToServer({username})}
+            />
             <div className='px-4'>
                 <SessionStatus />
                 { session ? props.children : null }
