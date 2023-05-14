@@ -2,12 +2,12 @@ import express from "express";
 import crypto from 'crypto';
 import { createServer } from "http";
 import cors from 'cors';
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 
 import rooms from './roomsDb';
 import InMemorySessionStore, { SessionStore } from './SessionStore';
 
-import { changeGameState, createRoom, joinRoom, leaveRoom } from './connectionService';
+import { getGameState, changeGameState, createRoom, joinRoom, leaveRoom } from './services';
 import { NewRoom, JoinRoom, Move, ChatMessage, RoomInformation, Session } from "./validators";
 import { GameState } from "./Room";
 
@@ -41,12 +41,6 @@ app.get('/', (req, res) => {
   res.status(200).send([]);
 });
 
-/* app.get('/rooms', (req, res) => {
-    console.log('/rooms');
-    const temp = Array.from(rooms, room => room[1].getRoomInfo());
-    res.status(200).send(temp);
-}); */
-
 const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
@@ -56,8 +50,6 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 const sessionStore: SessionStore = new InMemorySessionStore();
 
 setInterval(function() {
-    // console.log('all-rooms', Array.from(rooms, room => room[1].getRoomInfo()));
-    // console.log('session', sessionStore.findAllSessions());
     io.emit('all-rooms', Array.from(rooms, room => room[1].getRoomInfo()));
 }, 5000);
 
@@ -197,6 +189,11 @@ io.on("connection", (socket) => {
 
         if (!hasErrorField(newPlayerAndGameState)) {
             socket.join(roomInfo.name);
+        }
+
+        const gameState = getGameState(roomInfo.name);
+        if (!hasErrorField(gameState)) {
+            io.in(roomInfo.name).emit('game-state', gameState);
         }
 
         return callback(newPlayerAndGameState);

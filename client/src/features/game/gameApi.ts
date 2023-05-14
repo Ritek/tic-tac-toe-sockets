@@ -15,12 +15,9 @@ export const gameApi = createApi({
                     await cacheDataLoaded;
         
                     const listener = (event: GameState) => {
-
-                        console.log('event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {
-                            console.log(event);
                             return event;
                         });
                     }

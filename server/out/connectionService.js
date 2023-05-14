@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.leaveRoom = exports.joinRoom = exports.createRoom = exports.changeGameState = void 0;
+exports.leaveRoom = exports.joinRoom = exports.createRoom = exports.changeGameState = exports.getGameState = void 0;
 const roomsDb_1 = __importDefault(require("./roomsDb"));
 const Room_1 = __importDefault(require("./Room"));
 const types_1 = require("./types");
@@ -16,6 +16,13 @@ function createNewRoom(newRoomParams) {
     roomsDb_1.default.set(newRoom.name, newRoom);
     return newRoom;
 }
+function getGameState(roomName) {
+    const room = roomsDb_1.default.get(roomName);
+    return room
+        ? room.getGameState()
+        : { error: 'Room of provided name does not exist!' };
+}
+exports.getGameState = getGameState;
 function changeGameState(roomName, userID, changedSquereIndex) {
     const room = roomsDb_1.default.get(roomName);
     if (!room) {

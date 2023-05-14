@@ -13,7 +13,6 @@ export const chatApi = createApi({
                     await cacheDataLoaded;
         
                     const listener = (event: ChatMessage) => {
-                        console.log('event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {
@@ -22,7 +21,6 @@ export const chatApi = createApi({
                     }
         
                     socket.on('chat-message', (msg) => {
-                        console.log('chat-message', msg);
                         listener(msg);
                     });
                 } catch {

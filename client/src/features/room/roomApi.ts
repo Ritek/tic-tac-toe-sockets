@@ -44,14 +44,12 @@ export const roomApi = createApi({
     //baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:5000' }),
     endpoints: (build) => ({
         getRooms: build.query<AvaibleRoom[], void>({
-            // query: () => '/rooms',
             queryFn: () => ({ data: [] }),
             async onCacheEntryAdded(arg, { updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
                 try {
                     await cacheDataLoaded;
         
                     const listener = (event: AvaibleRoom[]) => {
-                        console.log('getRooms event:', event);
                         if (!event) return;
             
                         updateCachedData((draft) => {

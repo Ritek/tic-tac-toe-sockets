@@ -14,6 +14,13 @@ function createNewRoom(newRoomParams: NewRoom) {
     return newRoom;
 }
 
+export function getGameState(roomName: string) {
+    const room = rooms.get(roomName);
+    
+    return room
+        ? room.getGameState()
+        : { error: 'Room of provided name does not exist!' };
+}
 
 export function changeGameState(roomName: string, userID: string, changedSquereIndex: number) {
     const room = rooms.get(roomName);

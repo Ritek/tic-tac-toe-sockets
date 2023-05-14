@@ -150,6 +150,10 @@ io.on("connection", (socket) => {
         if (!hasErrorField(newPlayerAndGameState)) {
             socket.join(roomInfo.name);
         }
+        const gameState = (0, connectionService_1.getGameState)(roomInfo.name);
+        if (!hasErrorField(gameState)) {
+            io.in(roomInfo.name).emit('game-state', gameState);
+        }
         return callback(newPlayerAndGameState);
     });
     socket.on('leave-room', () => {

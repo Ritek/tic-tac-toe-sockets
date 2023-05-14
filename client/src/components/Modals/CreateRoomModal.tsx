@@ -36,9 +36,9 @@ function CreateRoomModal(props: Props) {
       </NativeModal.Text>
       <NativeModal.Input type='text' name='name' placeholder='room name' className='mb-2'/>
       <NativeModal.ConditionalInput 
-          className='mb-4'
-          checkbox={{ label: 'private', name: 'isPrivate', className: 'scale-150 mb-2' }}
-          input={{ type: 'password', name: 'password', placeholder: 'password' }}
+        className='mb-4'
+        checkbox={{ label: 'private', name: 'isPrivate', className: 'scale-150 mb-2' }}
+        input={{ type: 'password', name: 'password', placeholder: 'password' }}
       />
       <NativeModal.SubmitButton onClick={handleSubmit}>Create room</NativeModal.SubmitButton>
     </NativeModal>

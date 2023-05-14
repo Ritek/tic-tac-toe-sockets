@@ -1,14 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
-// import { socket } from './socket';
-
-/* import { 
-  useJoinRoomMutation, 
-  useGetNewGameStateQuery, 
-  useRequestRematchMutation,
-  useGetRematchRequestQuery,
-  useConfirmRematchMutation
-} from '../../globalApi'; */
 
 import {
   useGetNewGameStateQuery,
@@ -26,17 +17,16 @@ import {
 
 import Board from './Board';
 import Chat from './Chat';
-// import WinnerModal from './WinnerModal';
-// import RematchModal from './RematchModal';
 import WinnerModal from '../Modals/WinnerModal';
 import RematchModal from '../Modals/RematchModal';
+import PlayerInfoCards from './PlayerInfoCards';
 
 function Game() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showWinnerModal, setShowWinnerModal] = useState(false);
 
-  const [ joinRoom, { error } ] = useJoinRoomMutation();
+  const [ joinRoom ] = useJoinRoomMutation();
 
   const { data: rematchRequest } = useGetRematchRequestQuery();
   const [ requestRematch ] = useRequestRematchMutation();
@@ -45,8 +35,6 @@ function Game() {
   const { data: gameState } = useGetNewGameStateQuery();
   const [showRematchModal, setShowRematchModal] = useState(false);
 
-  const [boardState, setBoardState] = useState(new Array(9).fill(null));
-
   useEffect(() => {
     const roomInfo = { 
       name: location.pathname.replace('/', ''), 
@@ -54,10 +42,6 @@ function Game() {
     }
 
     joinRoom(roomInfo).unwrap().then(result => {
-      const boardState = result.gameState.boardState;
-      if (boardState) {
-        setBoardState(boardState);
-      }
       return result;
     }).catch(err => {
       navigate('/');
@@ -65,7 +49,6 @@ function Game() {
   }, []);
 
   useEffect(() => {
-    if (gameState) setBoardState(gameState.boardState);
     if (gameState?.winner) {
       setShowWinnerModal(true);
     }
@@ -86,31 +69,33 @@ function Game() {
 
   return (
     <div className="p-8 mb-28">
-      <button className="p-2 bg-sky-500 hover:bg-sky-600 rounded-md" onClick={() => setShowWinnerModal(true)}>Show winner</button>
+
+      {/* <button className="p-2 bg-sky-500 hover:bg-sky-600 rounded-md" onClick={() => setShowWinnerModal(true)}>Show winner</button> */}
       <WinnerModal 
         close={() => setShowWinnerModal(false)} 
         isVisible={showWinnerModal} 
         winner={gameState?.winner!} 
       />
 
-      <button className="p-2 bg-sky-500 hover:bg-sky-600 rounded-md" onClick={() => setShowRematchModal(true)}>Show rematch</button>
+      {/* <button className="p-2 bg-sky-500 hover:bg-sky-600 rounded-md" onClick={() => setShowRematchModal(true)}>Show rematch</button> */}
       <RematchModal
         close={() => setShowRematchModal(false)}
         isVisible={showRematchModal}
         submit={(rematch) => rematchHandler(rematch)}
       />
 
-      <button className='p-2 bg-sky-500 hover:bg-sky-600 rounded-md' 
-        onClick={() => requestRematch()}>
-        Request rematch
+      <button className='p-2 bg-sky-500 hover:bg-sky-600 rounded-md mb-2' 
+        onClick={() => requestRematch()}> Request rematch
       </button>
 
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>
-        <div className="min-w-[300px] max-w-screen-sm">
-          <Board board={boardState} disabled={!!gameState?.winner}/>
+      <PlayerInfoCards PlayerX={gameState?.players.playerX} PlayerO={gameState?.players.playerO} turn={gameState?.turn}/>
+
+      <div className='flex flex-row gap-5 flex-wrap md:flex-nowrap'>
+        <div className="w-full min-w-[300px] max-w-screen-md">
+          <Board board={gameState?.boardState} disabled={!!gameState?.winner}/>
         </div>
         
-        <div className="min-w-[300px] max-w-screen-sm">
+        <div className="w-full min-w-[300px] max-w-screen-md">
           <Chat />
         </div>
       </div>

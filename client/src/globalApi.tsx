@@ -1,3 +1,4 @@
+/* Global redux API splited into parts under feature/*
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { socket } from './socket';
 import { ChatMessage, GameState, NewRoomParameters, AvaibleRoom, Player, JoinRoomParameters } from './types';
@@ -289,4 +290,5 @@ export const {
     useCreateRoomMutation, 
     useJoinRoomMutation, 
     useLeaveRoomMutation
-} = globalApi;
+} = globalApi; 
+*/

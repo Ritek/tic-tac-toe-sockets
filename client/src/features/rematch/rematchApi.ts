@@ -14,18 +14,14 @@ export const rematchApi = createApi({
                     await cacheDataLoaded;
         
                     const listener = (event: string) => {
-                        console.log('before event', event);
                         if (!event) return;
-                        console.log('after event');
             
                         updateCachedData((draft) => {
-                            console.log(draft);
                             return 'Oponent requested rematch';
                         });
                     }
         
                     socket.on('confirm-rematch', (msg) => {
-                        console.log('globalAPI confirm-rematch', msg);
                         listener(msg);
                     });
                 } catch {
