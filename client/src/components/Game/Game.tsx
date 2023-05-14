@@ -69,8 +69,6 @@ function Game() {
 
   return (
     <div className="p-8 mb-28">
-
-      {/* <button className="p-2 bg-sky-500 hover:bg-sky-600 rounded-md" onClick={() => setShowWinnerModal(true)}>Show winner</button> */}
       <WinnerModal 
         close={() => setShowWinnerModal(false)} 
         isVisible={showWinnerModal} 

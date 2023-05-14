@@ -30,10 +30,8 @@ function HomeScreen() {
     const selectedRoomName = useRef({ name: "", isPrivate: false });
 
     useEffect(() => { 
-        console.log('rerendered HomeScreen!');
         leaveRoom();
         return () => {
-            console.log('Unmounted HomeScreen');
             socket.off();
         };
     }, []);
@@ -54,8 +52,6 @@ function HomeScreen() {
     }
 
     function createRoomHandler(newRoomParams: NewRoomParameters) {
-        console.log('createRoomHandler', newRoomParams);
-
         createRoom(newRoomParams).unwrap().then((result: any) => {
             console.log(result);
             setShowNewRoomModal(false);
@@ -84,8 +80,6 @@ function HomeScreen() {
             <h1 className='text-6xl mb-4'>Available rooms</h1>
             <h2 className='text-4xl mb-12'>Click a row to join a room</h2>
 
-            <Spinner svgClassName='' circleClassName='' pathClassName='fill-sky-600'/>
-
             <table className='w-full table-auto text-xl text-left'>
                 <thead>
                     <tr>
@@ -97,10 +91,10 @@ function HomeScreen() {
                 <tbody>
                     {
                         !rooms || rooms.length === 0
-                            ? <tr><td colSpan={3}><Spinner svgClassName='' circleClassName='' pathClassName='fill-sky-600'/></td></tr>
+                            ? <tr><td colSpan={3} className='h-[200px] w-full'><div className='w-full flex justify-center'><Spinner /></div></td></tr>
                             : rooms.map((room, iter) => (
-                            <RoomTableRow key={iter} room={room} rowClick={openJoinRoomModal} />
-                        ))
+                                <RoomTableRow key={iter} room={room} rowClick={openJoinRoomModal} />
+                            ))
                     }
                 </tbody>
             </table>
